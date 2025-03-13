@@ -6,7 +6,6 @@ const multer = require("multer");
 const { supabase } = require("./src/configaration/db.config");
 app.use(cors());
 app.use(express.json());
-
 const userAuthenticationRouter = require("./src/router/user-authentication-router");
 app.use("/auth", userAuthenticationRouter);
 const PORT = process.env.PORT || 5000;
