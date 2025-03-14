@@ -9,7 +9,7 @@ const createDailyModel = async (data) => {
     };
   } catch (error) {
     console.log(">>>>>>>>>>>>>>>>", error);
-    throw new Error(error.message); // Throw the error so the controller can handle it
+    throw new Error(error.message);
   }
 };
 
