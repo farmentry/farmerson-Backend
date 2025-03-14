@@ -10,7 +10,7 @@ const router = express.Router();
  *     summary: Create a new crop entry
  *     description: Adds crop details to the database.
  *     tags:
- *       - Crops
+ *       - Agriculture
  *     requestBody:
  *       required: true
  *       content:

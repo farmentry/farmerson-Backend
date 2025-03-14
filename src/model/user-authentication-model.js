@@ -1,5 +1,6 @@
 const supabase = require("../configaration/db.config");
- const userRegisterModel = async (req, res) => {
+const handleRoute = require("../utils/request-handler");
+const userRegisterModel = async (req, res) => {
   try {
     const { email, password, firstName, lastName, mobileno } = req.body;
     try {
@@ -26,7 +27,7 @@ const supabase = require("../configaration/db.config");
           email: email,
           // user_type: 'customer', // Default user type
           password: password,
-          mobile_no: mobileno,// Ideally, this should be hashed
+          mobile_no: mobileno, // Ideally, this should be hashed
         },
       ]);
       if (insertError) {
@@ -53,7 +54,7 @@ const supabase = require("../configaration/db.config");
   }
 };
 const userLoginModel = async (req, res) => {
-    const { email, password } = req.body;
+  const { email, password } = req.body;
   try {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -61,24 +62,98 @@ const userLoginModel = async (req, res) => {
     });
     if (error) {
       console.error("Login Error:", error.message);
-      return res.status(401).json({ 
+      return res.status(401).json({
         statusCode: 401,
-        error: error.message });
+        error: error.message,
+      });
     }
     const { data: addressData, error: addressError } = await supabase
-      .from('addresses')
-      .select('id')
-      .eq('user_email', email)
+      .from("addresses")
+      .select("id")
+      .eq("user_email", email)
       .single();
     const addressExists = !!addressData;
-    res.status(200).json({ 
-        statusCode: 200,
-        email, addressExists });
+    res.status(200).json({
+      statusCode: 200,
+      email,
+      addressExists,
+    });
   } catch (e) {
     console.error("Server Error:", e.message);
-    res.status(500).json({ 
-        statusCode: 500,
-        error: e.message });
+    res.status(500).json({
+      statusCode: 500,
+      error: e.message,
+    });
   }
-  };  
-module.exports = { userRegisterModel ,userLoginModel};
+};
+const getUserDetailsModel = async (req, res) => {
+  try {
+    const { email } = req.query;
+    const { data, error } = await supabase
+      .from("users")
+      .select("first_name, last_name, mobile_no")
+      .eq("email", email)
+      .single();
+    console.log(data);
+
+    if (!data) {
+      return res.status(404).json({
+        statusCode: 404,
+        error: "User details not found",
+      });
+    }
+    if (error) return res.status(500).json({ error: error.message });
+    res.status(200).json({
+      statusCode: 200,
+      data: data,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      statusCode: 500,
+      error: error.message,
+    });
+  }
+};
+const updateUserDetailsModel = async (req, res) => {
+  try {
+    const { email, dob } = req.body;
+    console;
+    console.log("Updating DOB for user:", email, "to:", dob);
+    const { data, error } = await supabase
+      .from("users")
+      .update({ dob })
+      .eq("email", email)
+      .select()
+      .maybeSingle();
+    if (error) {
+      console.error("Error updating DOB:", error);
+      return res.status(500).json({
+        statusCode: 500,
+        error: error.message,
+      });
+    }
+    if (!data) {
+      return res.status(404).json({
+        statusCode: 404,
+        error: "User not found",
+      });
+    }
+    res.status(200).json({
+      statusCode: 200,
+      message: "User DOB updated successfully",
+      data,
+    });
+  } catch (err) {
+    console.error("Unexpected error:", err);
+    res.status(500).json({
+      statusCode: 500,
+      error: "Something went wrong",
+    });
+  }
+};
+module.exports = {
+  userRegisterModel,
+  userLoginModel,
+  getUserDetailsModel,
+  updateUserDetailsModel,
+};

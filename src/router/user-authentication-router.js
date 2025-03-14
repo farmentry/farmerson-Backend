@@ -4,6 +4,8 @@ const handleRoute = require("../utils/request-handler");
 const {
   registerUserController,
   loginUserController,
+  getUserDetailsController,
+  updateUserDetailsController,
 } = require("../controller/user-authentication-controller");
 const multer = require("multer");
 const upload = multer();
@@ -30,38 +32,29 @@ router.post("/login", async (req, res) => {
     });
   }
 });
-router.get("/api/user-details", async (req, res) => {
-  const { email } = req.query;
-  const { data, error } = await supabase
-    .from("users")
-    .select("first_name, last_name, mobile_no")
-    .eq("email", email)
-    .single();
-  if (error) return res.status(500).json({ error: error.message });
-
-  res.status(200).json(data);
+router.get("/user-details", async (req, res) => {
+  try {
+    const response = await getUserDetailsController(req, res);
+    return response;
+  } catch (error) {
+    res.status(500).json({
+      statusCode: 500,
+      Routererror: error.message,
+    });
+  }
 });
-router.post(
-  "/api/users",
-  handleRoute(async (req, res) => {
-    const { email, dob } = req.body;
-    console.log("Updating DOB for user:", email, "to:", dob);
+router.put("/api/users", async (req, res) => {
+  try {
+    const response = await updateUserDetailsController(req, res);
+    return response;
+  } catch (error) {
+    res.status(500).json({
+      statusCode: 500,
+      Routererror: error.message,
+    });
+  }
+});
 
-    const { data, error } = await supabase
-      .from("users")
-      .update({ dob: dob })
-      .eq("email", email)
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Error updating DOB:", error);
-      return res.status(500).json({ error: error.message });
-    }
-
-    res.status(201).json(data);
-  })
-);
 router.post(
   "/api/users/profile-picture",
   upload.single("profile_picture"),
