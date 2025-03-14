@@ -4,7 +4,7 @@ const addPlantationController = require("../controllers/addPlantationController"
 
 /**
  * @swagger
- * auth/horticulture/add-plantation:
+ * /horticulture/create:
  *   post:
  *     summary: Add horticulture crop details
  *     description: Adds a new horticulture crop record with all required details.
@@ -78,6 +78,6 @@ const addPlantationController = require("../controllers/addPlantationController"
  *       500:
  *         description: Internal server error
  */
-router.post("/add-plantation", addPlantationController);
+router.post("/create", addPlantationController);
 
 module.exports = router;

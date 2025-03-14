@@ -19,6 +19,7 @@ const addPlantationController = async (request, response) => {
       pesticidesUsed: Joi.string().allow(""),
       fertilizersUsed: Joi.string().allow(""),
     });
+
     const { error } = horticultureSchema.validate(request.body);
     if (error) {
       return response.status(400).json({
@@ -26,8 +27,9 @@ const addPlantationController = async (request, response) => {
         errors: error.details.map((err) => err.message),
       });
     }
+
     const responseData = await addPlantationModel(request.body);
-    return responseData;
+    return response.status(responseData.statusCode).json(responseData);
   } catch (error) {
     return response.status(500).json({
       statusCode: 500,

@@ -1,5 +1,7 @@
 const express = require("express");
-const { createCropDetailsModel } = require("../model/crop-managament.model");
+const {
+  createCropDetails,
+} = require("../controllers/crop-management.controller");
 
 const router = express.Router();
 
@@ -21,10 +23,14 @@ const router = express.Router();
  *               - cropName
  *               - cropVariety
  *               - sowingDate
- *               - estimatedHarvestDate
- *               - cultivationMethod
+ *               - expectedHarvestDate
+ *               - currentGrowthStage
+ *               - totalCultivatedArea
  *               - expectedYield
  *             properties:
+ *               userId:
+ *                 type: string
+ *                 example: "1"
  *               cropName:
  *                 type: string
  *                 example: "Wheat"
@@ -35,20 +41,29 @@ const router = express.Router();
  *                 type: string
  *                 format: date
  *                 example: "2025-03-01"
- *               estimatedHarvestDate:
+ *               expectedHarvestDate:
  *                 type: string
  *                 format: date
  *                 example: "2025-07-01"
- *               cultivationMethod:
+ *               currentGrowthStage:
  *                 type: string
- *                 enum: ["Organic", "Conventional"]
- *                 example: "Organic"
+ *                 enum: ["Seedling", "Vegetative", "Flowering", "Maturity", "Harvest"]
+ *                 example: "Vegetative"
+ *               totalCultivatedArea:
+ *                 type: number
+ *                 example: 10.5
  *               expectedYield:
  *                 type: number
  *                 example: 5000
- *               actualYield:
+ *               fertilizersUsed:
+ *                 type: string
+ *                 example: "Urea, DAP"
+ *               pesticidesUsed:
+ *                 type: string
+ *                 example: "Neem Oil, Insecticide X"
+ *               marketPricePerQuintal:
  *                 type: number
- *                 example: 4800
+ *                 example: 2500
  *     responses:
  *       200:
  *         description: Crop details saved successfully
@@ -68,6 +83,6 @@ const router = express.Router();
  *       500:
  *         description: Internal server error
  */
-router.post("/create`", createCropDetailsModel);
+router.post("/create", createCropDetails);
 
 module.exports = router;

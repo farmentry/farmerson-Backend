@@ -4,15 +4,5 @@ const {
   createCropDetails,
 } = require("../controller/crop-managament.controller");
 
-router.post("/create", async (req, res) => {
-  try {
-    const response = await createCropDetails(req, res);
-    return response;
-  } catch (error) {
-    res.status(500).json({
-      statusCode: 500,
-      Routererror: error.message,
-    });
-  }
-});
+router.post("/create", createCropDetails);
 module.exports = router;

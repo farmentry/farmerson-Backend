@@ -1,18 +1,17 @@
 const supabase = require("../configaration/db.config");
 
-const addPlantationModel = async (req, res) => {
+const addPlantationModel = async (data) => {
   try {
-    const { email, password, firstName, lastName, mobileno } = req.body;
-    console.log(email);
-    return res.status(200).json({
+    // Here, you would save `data` to the database using Supabase (if implemented)
+    return {
       statusCode: 200,
-      message: "Crop details created successfully",
-    });
+      message: "Details are saved successfully",
+    };
   } catch (error) {
-    return res.status(500).json({
+    return {
       statusCode: 500,
       error: error.message,
-    });
+    };
   }
 };
 
