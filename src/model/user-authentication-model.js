@@ -1,51 +1,71 @@
 const supabase = require("../configaration/db.config");
 const handleRoute = require("../utils/request-handler");
+const bcrypt = require("bcryptjs");
+const sendEmailVerificationCode = require("../utils/send-mail");
+const jwt = require("jsonwebtoken");
+
 const userRegisterModel = async (req, res) => {
   try {
     const { email, password, firstName, lastName, mobileno } = req.body;
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-            // mobile_no: mobileno,
-          },
-          /* emailRedirectTo: "https://localhost:5000/auth/callback", */ // Change to your frontend
-        },
+    // Check if user already exists
+    const { data: existingUser, error: fetchError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("email", email)
+      .maybeSingle();
+    if (fetchError) {
+      console.error("Supabase Fetch Error:", fetchError);
+      return res.status(500).json({
+        statusCode: 500,
+        error: "Database error while checking existing user.",
       });
-      if (error) {
-        console.error("Auth Error:", error);
-        return res.status(400).json({ error: error.message });
+    }
+
+    if (existingUser) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "Email already exists",
+      });
+    }
+
+    function generateOTP(limit) {
+      var digits = "0123456789";
+      let OTP = "";
+      for (let i = 0; i < limit; i++) {
+        OTP += digits[Math.floor(Math.random() * 10)];
       }
-      const { error: insertError } = await supabase.from("users").insert([
+      return OTP;
+    }
+
+    const generateCode = generateOTP(4);
+
+    const otp = sendEmailVerificationCode(email, generateCode);
+    console.log(">>>>>>>>>>>>>>>>>>>", otp);
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const { data, error: insertError } = await supabase
+      .from("users")
+      .insert([
         {
           first_name: firstName,
           last_name: lastName,
           email: email,
-          // user_type: 'customer', // Default user type
-          password: password,
-          mobile_no: mobileno, // Ideally, this should be hashed
+          password: hashedPassword,
+          mobile_no: mobileno,
+          otp: generateCode,
         },
-      ]);
-      if (insertError) {
-        return res.status(400).json({
-          statusCode: 400,
-          error: insertError.message,
-        });
-      }
-      return res.status(201).json({
-        statusCode: 201,
-        message: "Registration successful",
-      });
-    } catch (e) {
-      return res.status(500).json({
-        statusCode: 500,
-        error: e.message,
+      ])
+      .select();
+    if (insertError) {
+      console.error("Supabase Insert Error:", insertError);
+      return res.status(400).json({
+        statusCode: 400,
+        error: insertError.message,
       });
     }
+    return res.status(201).json({
+      statusCode: 201,
+      message: "Registration successful",
+    });
   } catch (error) {
     return res.status(500).json({
       statusCode: 500,
@@ -53,18 +73,32 @@ const userRegisterModel = async (req, res) => {
     });
   }
 };
+
 const userLoginModel = async (req, res) => {
   const { email, password } = req.body;
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) {
-      console.error("Login Error:", error.message);
+    const { data: user, error: userError } = await supabase
+      .from("users")
+      .select("password, email,isemailverified")
+      .eq("email", email)
+      .single();
+    console.log(user);
+    if (userError || !user) {
       return res.status(401).json({
         statusCode: 401,
-        error: error.message,
+        error: "Invalid email or password",
+      });
+    }
+    console.log(">>>>>>>>", user);
+    const isPswTrue = await bcrypt.compare(password, user.password);
+    const token = jwt.sign({ email: user.email }, "HS256", {
+      expiresIn: "1h",
+    });
+    console.log(isPswTrue);
+    if (!isPswTrue) {
+      return res.status(401).json({
+        statusCode: 401,
+        error: "Invalid email or password",
       });
     }
     const { data: addressData, error: addressError } = await supabase
@@ -77,6 +111,8 @@ const userLoginModel = async (req, res) => {
       statusCode: 200,
       email,
       addressExists,
+      isemailverified: user.isemailverified,
+      token,
     });
   } catch (e) {
     console.error("Server Error:", e.message);
@@ -86,6 +122,99 @@ const userLoginModel = async (req, res) => {
     });
   }
 };
+const verificationOtpModel = async (req, res) => {
+  const { email, otp } = req.body;
+  try {
+    const { data: user, error: userError } = await supabase
+      .from("users")
+      .select("otp, isemailverified")
+      .eq("email", email)
+      .single();
+
+    if (userError || !user) {
+      return res.status(401).json({
+        statusCode: 401,
+        error: "User not found",
+      });
+    }
+    if (otp !== user.otp) {
+      return res.status(400).json({
+        statusCode: 400,
+        error: "Invalid OTP",
+      });
+    }
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({
+        isemailverified: true,
+        otp: null,
+      })
+      .eq("email", email);
+    if (updateError) {
+      return res.status(500).json({
+        statusCode: 500,
+        error: "Failed to update user verification status",
+      });
+    }
+    res.status(200).json({
+      statusCode: 200,
+      message: "OTP Verification Success, Email Verified",
+    });
+  } catch (e) {
+    console.error("Server Error:", e.message);
+    res.status(500).json({
+      statusCode: 500,
+      error: e.message,
+    });
+  }
+};
+const userDetailsModel = async (req, res) => {
+  const { email, otp } = req.body;
+  try {
+    const { data: user, error: userError } = await supabase
+      .from("users")
+      .select("otp, isemailverified")
+      .eq("email", email)
+      .single();
+
+    if (userError || !user) {
+      return res.status(401).json({
+        statusCode: 401,
+        error: "User not found",
+      });
+    }
+    if (otp !== user.otp) {
+      return res.status(400).json({
+        statusCode: 400,
+        error: "Invalid OTP",
+      });
+    }
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({
+        isemailverified: true,
+        otp: null,
+      })
+      .eq("email", email);
+    if (updateError) {
+      return res.status(500).json({
+        statusCode: 500,
+        error: "Failed to update user verification status",
+      });
+    }
+    res.status(200).json({
+      statusCode: 200,
+      message: "OTP Verification Success, Email Verified",
+    });
+  } catch (e) {
+    console.error("Server Error:", e.message);
+    res.status(500).json({
+      statusCode: 500,
+      error: e.message,
+    });
+  }
+};
+
 const getUserDetailsModel = async (req, res) => {
   try {
     const { email } = req.query;
@@ -156,4 +285,6 @@ module.exports = {
   userLoginModel,
   getUserDetailsModel,
   updateUserDetailsModel,
+  verificationOtpModel,
+  userDetailsModel,
 };

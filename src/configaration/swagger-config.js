@@ -10,7 +10,7 @@ const swaggerDefinition = {
   },
   servers: [
     {
-      //   url: `http://localhost:${process.env.PORT || 5000}`,
+      // url: `http://localhost:${process.env.PORT || 5000}`,
       url: `http://34.47.252.131`,
       description: "UAT server",
     },

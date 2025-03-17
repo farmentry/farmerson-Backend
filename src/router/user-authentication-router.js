@@ -6,6 +6,8 @@ const {
   loginUserController,
   getUserDetailsController,
   updateUserDetailsController,
+  verificationOtpController,
+  userDetailsController,
 } = require("../controller/user-authentication-controller");
 const multer = require("multer");
 const upload = multer();
@@ -21,9 +23,31 @@ router.post("/register", async (req, res) => {
     });
   }
 });
+router.post("/verify-otp", async (req, res) => {
+  try {
+    const response = await verificationOtpController(req, res);
+    return response;
+  } catch (error) {
+    res.status(500).json({
+      statusCode: 500,
+      Routererror: error.message,
+    });
+  }
+});
 router.post("/login", async (req, res) => {
   try {
     const response = await loginUserController(req, res);
+    return response;
+  } catch (error) {
+    res.status(500).json({
+      statusCode: 500,
+      Routererror: error.message,
+    });
+  }
+});
+router.post("/user-details", async (req, res) => {
+  try {
+    const response = await userDetailsController(req, res);
     return response;
   } catch (error) {
     res.status(500).json({

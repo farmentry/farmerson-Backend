@@ -13,6 +13,8 @@ const router = express.Router();
  *     description: Adds crop details to the database.
  *     tags:
  *       - Agriculture
+ *     security:
+ *       - BearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -82,7 +84,14 @@ const router = express.Router();
  *         description: Validation error
  *       500:
  *         description: Internal server error
+ * components:
+ *   securitySchemes:
+ *     BearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
  */
+
 router.post("/create", createCropDetails);
 
 module.exports = router;
