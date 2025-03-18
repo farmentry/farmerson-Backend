@@ -5,10 +5,25 @@ const {
   updateUserDetailsModel,
   verificationOtpModel,
   userDetailsModel,
+  moreDetailsModel,
+  getUserByIdModel,
+  forgotPasswordModel,
+  resetPasswordModel,
 } = require("../model/user-authentication-model");
 const registerUserController = async (request, response) => {
   try {
     const responseData = await userRegisterModel(request, response);
+    return responseData;
+  } catch (error) {
+    return response.status(500).json({
+      statusbar: 500,
+      controllererror: error.message,
+    });
+  }
+};
+const moreDetailsController = async (request, response) => {
+  try {
+    const responseData = await moreDetailsModel(request, response);
     return responseData;
   } catch (error) {
     return response.status(500).json({
@@ -52,6 +67,39 @@ const userDetailsController = async (request, response) => {
     });
   }
 };
+const getUserByIdController = async (request, response) => {
+  try {
+    const responseData = await getUserByIdModel(request, response);
+    return responseData;
+  } catch (error) {
+    return response.status(500).json({
+      statusbar: 500,
+      controllererror: error.message,
+    });
+  }
+};
+const forgotPasswordController = async (request, response) => {
+  try {
+    const responseData = await forgotPasswordModel(request, response);
+    return responseData;
+  } catch (error) {
+    return response.status(500).json({
+      statusbar: 500,
+      controllererror: error.message,
+    });
+  }
+};
+const resetPasswordController = async (request, response) => {
+  try {
+    const responseData = await resetPasswordModel(request, response);
+    return responseData;
+  } catch (error) {
+    return response.status(500).json({
+      statusbar: 500,
+      controllererror: error.message,
+    });
+  }
+};
 
 const getUserDetailsController = async (request, response) => {
   try {
@@ -83,4 +131,8 @@ module.exports = {
   updateUserDetailsController,
   verificationOtpController,
   userDetailsController,
+  moreDetailsController,
+  getUserByIdController,
+  forgotPasswordController,
+  resetPasswordController,
 };

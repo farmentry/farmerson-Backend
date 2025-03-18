@@ -28,7 +28,6 @@ const requiredToken = async (request, response, next) => {
       });
     } else {
       const authResult = await decodeToken(request.headers["authorization"]);
-      console.log("authResult>>>>>>>>>>>>>>>>>", authResult);
       //   if (authResult.expiredAt) {
       //     response.status(406).send({
       //       status: 406,
@@ -37,16 +36,16 @@ const requiredToken = async (request, response, next) => {
       //       data: null,
       //     });
       //   } else
-      if (authResult.email) {
+      if (authResult.user_id) {
         const { data: isUserVerified, error: userError } = await supabase
           .from("users")
-          .select("first_name, email")
-          .eq("email", authResult.email)
+          .select("first_name,user_id, email")
+          .eq("user_id", authResult.user_id)
           .single();
         console.log(">>>>>>>>>>>>>>", isUserVerified);
         if (isUserVerified) {
           request["user"] = isUserVerified;
-          request["user"].email = Number(request["user"].email);
+          request["user"].user_id = Number(request["user"].user_id);
           next();
         } else {
           const error = {
@@ -152,8 +151,26 @@ const requiredAdmin = async (request, response, next) => {
     response.send(error);
   }
 };
+const getUser = async (userId) => {
+  try {
+    const { data: userData, error } = await supabase
+      .from("users")
+      .select()
+      .eq("user_id", userId)
+      .single();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return { success: true, user: userData };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
 
 module.exports = {
   requiredToken,
   requiredAdmin,
+  getUser,
 };

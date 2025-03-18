@@ -1,8 +1,10 @@
 const supabase = require("../configaration/db.config");
 const handleRoute = require("../utils/request-handler");
+const nodemailer = require("nodemailer");
 const bcrypt = require("bcryptjs");
 const sendEmailVerificationCode = require("../utils/send-mail");
 const jwt = require("jsonwebtoken");
+const { farmTypes } = require("../utils/constants");
 
 const userRegisterModel = async (req, res) => {
   try {
@@ -38,9 +40,7 @@ const userRegisterModel = async (req, res) => {
     }
 
     const generateCode = generateOTP(4);
-
     const otp = sendEmailVerificationCode(email, generateCode);
-    console.log(">>>>>>>>>>>>>>>>>>>", otp);
     const hashedPassword = await bcrypt.hash(password, 10);
     const { data, error: insertError } = await supabase
       .from("users")
@@ -65,6 +65,7 @@ const userRegisterModel = async (req, res) => {
     return res.status(201).json({
       statusCode: 201,
       message: "Registration successful",
+      userid: data[0]?.user_id,
     });
   } catch (error) {
     return res.status(500).json({
@@ -73,13 +74,80 @@ const userRegisterModel = async (req, res) => {
     });
   }
 };
-
+const moreDetailsModel = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const {
+      state,
+      district,
+      mandal,
+      village,
+      pincode,
+      date_of_birth,
+      borewell_count,
+      canal,
+      rain_fed,
+      is_farmer,
+      farm_size,
+      farming_type,
+      soil_type,
+      water_source,
+    } = req.body;
+    farming_name = farming_type
+      .map((type) =>
+        Object.keys(farmTypes).find((key) => farmTypes[key] === type)
+      )
+      .join(",");
+    const { data: addressData, error: insertError } = await supabase
+      .from("address")
+      .insert([{ state, district, mandal, village, pincode }])
+      .select()
+      .single();
+    if (insertError) {
+      console.error("Supabase Insert Error:", insertError);
+      return res
+        .status(400)
+        .json({ statusCode: 400, error: insertError.message });
+    }
+    // Update user's address_id
+    const { data: userData, error: updateError } = await supabase
+      .from("users")
+      .update({
+        address_id: addressData.address_id,
+        dob: date_of_birth,
+        borewell_count,
+        canal,
+        rain_fed,
+        is_farmer,
+        farm_size,
+        farming_type: farming_name,
+        soil_type,
+        water_source,
+      })
+      .eq("user_id", userId)
+      .select()
+      .single();
+    if (updateError) {
+      console.error("Supabase Update Error:", updateError);
+      return res
+        .status(400)
+        .json({ statusCode: 400, error: updateError.message });
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      message: "Address saved successfully",
+    });
+  } catch (e) {
+    console.error("Server Error:", e.message);
+    return res.status(500).json({ statusCode: 500, error: e.message });
+  }
+};
 const userLoginModel = async (req, res) => {
   const { email, password } = req.body;
   try {
     const { data: user, error: userError } = await supabase
       .from("users")
-      .select("password, email,isemailverified")
+      .select("password,user_id, email,address_id")
       .eq("email", email)
       .single();
     console.log(user);
@@ -89,10 +157,9 @@ const userLoginModel = async (req, res) => {
         error: "Invalid email or password",
       });
     }
-    console.log(">>>>>>>>", user);
     const isPswTrue = await bcrypt.compare(password, user.password);
-    const token = jwt.sign({ email: user.email }, "HS256", {
-      expiresIn: "1h",
+    const token = jwt.sign({ user_id: user.user_id }, "HS256", {
+      expiresIn: "24h",
     });
     console.log(isPswTrue);
     if (!isPswTrue) {
@@ -101,17 +168,11 @@ const userLoginModel = async (req, res) => {
         error: "Invalid email or password",
       });
     }
-    const { data: addressData, error: addressError } = await supabase
-      .from("addresses")
-      .select("id")
-      .eq("user_email", email)
-      .single();
-    const addressExists = !!addressData;
+    const isUserAddressExist = !!user?.address_id;
     res.status(200).json({
       statusCode: 200,
       email,
-      addressExists,
-      isemailverified: user.isemailverified,
+      isUserAddressExist,
       token,
     });
   } catch (e) {
@@ -125,12 +186,13 @@ const userLoginModel = async (req, res) => {
 const verificationOtpModel = async (req, res) => {
   const { email, otp } = req.body;
   try {
+    console.log("email", email);
+    const cleanedEmail = email.trim().toLowerCase();
     const { data: user, error: userError } = await supabase
       .from("users")
-      .select("otp, isemailverified")
+      .select("*")
       .eq("email", email)
-      .single();
-
+      .maybeSingle();
     if (userError || !user) {
       return res.status(401).json({
         statusCode: 401,
@@ -215,6 +277,147 @@ const userDetailsModel = async (req, res) => {
   }
 };
 
+const getUserByIdModel = async (req, res) => {
+  try {
+    console.log("Getting user details by ID", req.user);
+    const { user_id } = req.user;
+    const { data: user, error } = await supabase
+      .from("users")
+      .select(
+        `
+        user_id, first_name, last_name, dob, email, active,is_farmer,farming_type, created_at,
+        role: role_id (role_name),
+        address: address_id (state, district, mandal, village, pincode),
+        crops: user_id (
+          crop_name, crop_variety, sowing_date, expected_harvest_date, 
+          current_growth_stage, total_cultivated_area, expected_yield, 
+          fertilizers_used, pesticides_used, market_price_per_quintal
+        )
+      `
+      )
+      .eq("user_id", user_id)
+      .single();
+    if (error || !user) {
+      return res.status(404).json({
+        statusCode: 404,
+        error: "User not found",
+      });
+    }
+    console.log("User details:", user);
+    user.farming_type = user.farming_type = user.farming_type
+      .split(",")
+      .map((type) => farmTypes[type]);
+    res.status(200).json({
+      statusCode: 200,
+      message: "User retrieved successfully",
+      data: user,
+    });
+  } catch (e) {
+    console.error("Server Error:", e.message);
+    res.status(500).json({
+      statusCode: 500,
+      error: e.message,
+    });
+  }
+};
+const forgotPasswordModel = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const { data: user, error: userError } = await supabase
+      .from("users")
+      .select("user_id, email, address_id")
+      .eq("email", email)
+      .single();
+    if (userError || !user) {
+      return res.status(401).json({
+        statusCode: 401,
+        error: "Invalid email",
+      });
+    }
+    function generateOTP(limit) {
+      var digits = "0123456789";
+      let OTP = "";
+      for (let i = 0; i < limit; i++) {
+        OTP += digits[Math.floor(Math.random() * 10)];
+      }
+      return OTP;
+    }
+    const generateCode = generateOTP(4);
+    const psw = true;
+    const otp = sendEmailVerificationCode(email, generateCode, psw);
+    await supabase
+      .from("users")
+      .update({
+        otp: generateCode,
+      })
+      .eq("email", email);
+    res.status(200).json({
+      statusCode: 200,
+      message: "OTP has been  sent",
+    });
+  } catch (e) {
+    console.log(e);
+    console.error("Server Error:", e.message);
+    res.status(500).json({
+      statusCode: 500,
+      error: e.message,
+    });
+  }
+};
+const resetPasswordModel = async (req, res) => {
+  try {
+    const { id } = req.query;
+    const { password, otp } = req.body;
+    const { data: user, error: userError } = await supabase
+      .from("users")
+      .select("user_id, email, address_id, otp")
+      .eq("user_id", id)
+      .single();
+
+    if (userError || !user) {
+      return res.status(400).json({
+        statusCode: 400,
+        error: "User does not exist",
+      });
+    }
+    console.log(">>>>>>>>>>", user.otp);
+    console.log(">>>>>>>>>>", otp);
+    // Verify OTP
+    if (user.otp !== otp) {
+      return res.status(400).json({
+        statusCode: 400,
+        error: "Invalid OTP",
+      });
+    }
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const { data, error } = await supabase
+      .from("users")
+      .update({ password: hashedPassword, otp: "" })
+      .eq("user_id", user.user_id)
+      .select()
+      .maybeSingle();
+    if (error) {
+      console.error("Error updating password:", error);
+      return res.status(500).json({
+        statusCode: 500,
+        error: error.message,
+      });
+    }
+    res.status(200).json({
+      statusCode: 200,
+      message: "Password reset successfully",
+    });
+  } catch (e) {
+    console.log(e);
+    console.error("Server Error:", e.message);
+    res.status(500).json({
+      statusCode: 500,
+      error: e.message,
+    });
+  }
+};
+
 const getUserDetailsModel = async (req, res) => {
   try {
     const { email } = req.query;
@@ -287,4 +490,8 @@ module.exports = {
   updateUserDetailsModel,
   verificationOtpModel,
   userDetailsModel,
+  moreDetailsModel,
+  getUserByIdModel,
+  forgotPasswordModel,
+  resetPasswordModel,
 };

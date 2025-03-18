@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const handleRoute = require("../utils/request-handler");
+const { requiredToken } = require("../utils/authentication");
 const {
   registerUserController,
   loginUserController,
@@ -8,6 +9,10 @@ const {
   updateUserDetailsController,
   verificationOtpController,
   userDetailsController,
+  moreDetailsController,
+  getUserByIdController,
+  forgotPasswordController,
+  resetPasswordController,
 } = require("../controller/user-authentication-controller");
 const multer = require("multer");
 const upload = multer();
@@ -15,6 +20,17 @@ const upload = multer();
 router.post("/register", async (req, res) => {
   try {
     const response = await registerUserController(req, res);
+    return response;
+  } catch (error) {
+    res.status(500).json({
+      statusCode: 500,
+      Routererror: error.message,
+    });
+  }
+});
+router.post("/more-details/:userId", async (req, res) => {
+  try {
+    const response = await moreDetailsController(req, res);
     return response;
   } catch (error) {
     res.status(500).json({
@@ -49,6 +65,39 @@ router.post("/user-details", async (req, res) => {
   try {
     const response = await userDetailsController(req, res);
     return response;
+  } catch (error) {
+    res.status(500).json({
+      statusCode: 500,
+      Routererror: error.message,
+    });
+  }
+});
+router.get("/get-user", requiredToken, async (req, res) => {
+  try {
+    const response = await getUserByIdController(req, res);
+    return response;
+  } catch (error) {
+    res.status(500).json({
+      statusCode: 500,
+      Routererror: error.message,
+    });
+  }
+});
+router.get("/forgot-password", async (req, res) => {
+  try {
+    const response = await forgotPasswordController(req, res);
+    return response;
+  } catch (error) {
+    res.status(500).json({
+      statusCode: 500,
+      Routererror: error.message,
+    });
+  }
+});
+
+router.get("/reset-password", async (req, res) => {
+  try {
+    await resetPasswordController(req, res);
   } catch (error) {
     res.status(500).json({
       statusCode: 500,

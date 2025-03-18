@@ -3,8 +3,8 @@ const { createCropDetailsModel } = require("../model/crop-managament.model");
 
 const createCropDetails = async (request, response) => {
   try {
+    // Define validation schema
     const cropSchema = Joi.object({
-      userId: Joi.string().required(),
       cropName: Joi.string().required(),
       cropVariety: Joi.string().required(),
       sowingDate: Joi.date().required(),
@@ -12,13 +12,14 @@ const createCropDetails = async (request, response) => {
       currentGrowthStage: Joi.string()
         .valid("Seedling", "Vegetative", "Flowering", "Maturity", "Harvest")
         .required(),
-      totalCultivatedArea: Joi.number().required(),
-      expectedYield: Joi.number().required(),
+      totalCultivatedArea: Joi.number().positive().required(),
+      expectedYield: Joi.number().positive().required(),
       fertilizersUsed: Joi.string().allow(""),
       pesticidesUsed: Joi.string().allow(""),
       marketPricePerQuintal: Joi.number().optional(),
     });
 
+    // Validate request body
     const { error } = cropSchema.validate(request.body);
     if (error) {
       return response.status(400).json({
@@ -27,13 +28,14 @@ const createCropDetails = async (request, response) => {
       });
     }
 
-    const responseData = await createCropDetailsModel(request.body);
-    return response.status(responseData.statusCode).json(responseData);
+    // Call model function
+    await createCropDetailsModel(request, response);
   } catch (error) {
-    console.log("Controller Error:", error);
+    console.error("Controller Error:", error);
     return response.status(500).json({
       statusCode: 500,
-      controllerError: error.message,
+      message: "Internal server error",
+      error: error.message,
     });
   }
 };
