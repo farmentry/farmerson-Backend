@@ -74,7 +74,7 @@ const userRegisterModel = async (req, res) => {
     });
   }
 };
-const moreDetailsModel = async (req, res) => {
+const moreDetailsModel = async (req, res, fileUrl) => {
   try {
     const { userId } = req.params;
     const {
@@ -93,11 +93,13 @@ const moreDetailsModel = async (req, res) => {
       soil_type,
       water_source,
     } = req.body;
-    farming_name = farming_type
+    const array = JSON.parse(farming_type);
+    const farming_name = array
       .map((type) =>
         Object.keys(farmTypes).find((key) => farmTypes[key] === type)
       )
       .join(",");
+    const image_ref_id = fileUrl.split("/")[2];
     const { data: addressData, error: insertError } = await supabase
       .from("address")
       .insert([{ state, district, mandal, village, pincode }])
@@ -109,7 +111,6 @@ const moreDetailsModel = async (req, res) => {
         .status(400)
         .json({ statusCode: 400, error: insertError.message });
     }
-    // Update user's address_id
     const { data: userData, error: updateError } = await supabase
       .from("users")
       .update({
@@ -123,16 +124,19 @@ const moreDetailsModel = async (req, res) => {
         farming_type: farming_name,
         soil_type,
         water_source,
+        image_ref_id,
       })
       .eq("user_id", userId)
       .select()
       .single();
+
     if (updateError) {
       console.error("Supabase Update Error:", updateError);
       return res
         .status(400)
         .json({ statusCode: 400, error: updateError.message });
     }
+
     return res.status(200).json({
       statusCode: 200,
       message: "Address saved successfully",
@@ -142,6 +146,7 @@ const moreDetailsModel = async (req, res) => {
     return res.status(500).json({ statusCode: 500, error: e.message });
   }
 };
+
 const userLoginModel = async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -279,16 +284,15 @@ const userDetailsModel = async (req, res) => {
 
 const getUserByIdModel = async (req, res) => {
   try {
-    console.log("Getting user details by ID", req.user);
     const { user_id } = req.user;
     const { data: user, error } = await supabase
       .from("users")
       .select(
         `
-        user_id, first_name, last_name, dob, email, active,is_farmer,farming_type, created_at,
+        user_id, first_name, last_name, dob, email, active, is_farmer, farming_type,image_ref_id, created_at,
         role: role_id (role_name),
         address: address_id (state, district, mandal, village, pincode),
-        crops: user_id (
+        crops: crop_management!fk_user (
           crop_name, crop_variety, sowing_date, expected_harvest_date, 
           current_growth_stage, total_cultivated_area, expected_yield, 
           fertilizers_used, pesticides_used, market_price_per_quintal
@@ -297,20 +301,26 @@ const getUserByIdModel = async (req, res) => {
       )
       .eq("user_id", user_id)
       .single();
+    const { data: dairyDetails, error: dairyError } = await supabase
+      .from("dairy_farming")
+      .select("*")
+      .eq("user_id", user_id);
+    ``;
     if (error || !user) {
       return res.status(404).json({
         statusCode: 404,
         error: "User not found",
       });
     }
-    console.log("User details:", user);
-    user.farming_type = user.farming_type = user.farming_type
-      .split(",")
-      .map((type) => farmTypes[type]);
+    user.farming_type = user.farming_type
+      ? user.farming_type.split(",").map((type) => farmTypes[type])
+      : [];
+
     res.status(200).json({
       statusCode: 200,
       message: "User retrieved successfully",
       data: user,
+      dairyDetails: dairyDetails || [],
     });
   } catch (e) {
     console.error("Server Error:", e.message);
@@ -320,6 +330,7 @@ const getUserByIdModel = async (req, res) => {
     });
   }
 };
+
 const forgotPasswordModel = async (req, res) => {
   try {
     const { email } = req.body;
@@ -354,6 +365,7 @@ const forgotPasswordModel = async (req, res) => {
     res.status(200).json({
       statusCode: 200,
       message: "OTP has been  sent",
+      id: user?.user_id,
     });
   } catch (e) {
     console.log(e);

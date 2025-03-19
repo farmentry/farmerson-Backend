@@ -9,6 +9,7 @@ const createDailyController = async (req, res) => {
         .valid("Cow", "Buffalo", "Goat", "Sheep")
         .required(),
       breed: Joi.string().required(),
+      totalCattle: Joi.number().min(0).required(),
       milkProduction: Joi.number().min(0).required(),
       feedingType: Joi.string()
         .valid("Grazing", "Stall-fed", "Mixed")
@@ -22,7 +23,7 @@ const createDailyController = async (req, res) => {
         errors: error.details.map((err) => err.message),
       });
     }
-    const responseData = await createDailyModel(req.body);
+    const responseData = await createDailyModel(req, res);
     // Send success response
     return res.status(200).json({
       responseData,

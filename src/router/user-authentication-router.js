@@ -1,4 +1,7 @@
 const express = require("express");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 const router = express.Router();
 const handleRoute = require("../utils/request-handler");
 const { requiredToken } = require("../utils/authentication");
@@ -14,8 +17,23 @@ const {
   forgotPasswordController,
   resetPasswordController,
 } = require("../controller/user-authentication-controller");
-const multer = require("multer");
-const upload = multer();
+
+const uploadDir = path.join(__dirname, "..", "public");
+fs.mkdirSync(uploadDir, { recursive: true });
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(
+      null,
+      file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname)
+    );
+  },
+});
+
+const upload = multer({ storage });
 // Home page route.
 router.post("/register", async (req, res) => {
   try {
@@ -28,17 +46,22 @@ router.post("/register", async (req, res) => {
     });
   }
 });
-router.post("/more-details/:userId", async (req, res) => {
-  try {
-    const response = await moreDetailsController(req, res);
-    return response;
-  } catch (error) {
-    res.status(500).json({
-      statusCode: 500,
-      Routererror: error.message,
-    });
+router.post(
+  "/more-details/:userId",
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const fileUrl = req.file ? `/public/${req.file.filename}` : null;
+      await moreDetailsController(req, res, fileUrl);
+    } catch (error) {
+      console.error("Router Error:", error.message);
+      res.status(500).json({
+        statusCode: 500,
+        routerError: error.message,
+      });
+    }
   }
-});
+);
 router.post("/verify-otp", async (req, res) => {
   try {
     const response = await verificationOtpController(req, res);

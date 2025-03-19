@@ -21,14 +21,14 @@ const registerUserController = async (request, response) => {
     });
   }
 };
-const moreDetailsController = async (request, response) => {
+const moreDetailsController = async (req, res, fileUrl) => {
   try {
-    const responseData = await moreDetailsModel(request, response);
-    return responseData;
+    await moreDetailsModel(req, res, fileUrl);
   } catch (error) {
-    return response.status(500).json({
-      statusbar: 500,
-      controllererror: error.message,
+    console.error("Controller Error:", error.message);
+    return res.status(500).json({
+      statusCode: 500,
+      controllerError: error.message,
     });
   }
 };
