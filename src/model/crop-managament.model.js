@@ -17,6 +17,7 @@ const createCropDetailsModel = async (request, response) => {
     } = request.body;
     const { user_id } = request.user;
     const getUserData = await getUser(user_id);
+    console.log(">>>>>>>>>", getUserData);
     if (!getUserData?.user) {
       return response.status(404).json({
         statusCode: 404,

@@ -16,6 +16,7 @@ const {
   getUserByIdController,
   forgotPasswordController,
   resetPasswordController,
+  createFarmingDetailsController,
 } = require("../controller/user-authentication-controller");
 
 const uploadDir = path.join(__dirname, "..", "public");
@@ -47,7 +48,7 @@ router.post("/register", async (req, res) => {
   }
 });
 router.post(
-  "/more-details/:userId",
+  "/personal-information/:userId",
   upload.single("file"),
   async (req, res) => {
     try {
@@ -87,6 +88,17 @@ router.post("/login", async (req, res) => {
 router.post("/user-details", async (req, res) => {
   try {
     const response = await userDetailsController(req, res);
+    return response;
+  } catch (error) {
+    res.status(500).json({
+      statusCode: 500,
+      Routererror: error.message,
+    });
+  }
+});
+router.post("/farming-details", requiredToken, async (req, res) => {
+  try {
+    const response = await createFarmingDetailsController(req, res);
     return response;
   } catch (error) {
     res.status(500).json({

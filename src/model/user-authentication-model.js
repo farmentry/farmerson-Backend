@@ -4,13 +4,10 @@ const nodemailer = require("nodemailer");
 const bcrypt = require("bcryptjs");
 const sendEmailVerificationCode = require("../utils/send-mail");
 const jwt = require("jsonwebtoken");
-const { farmTypes } = require("../utils/constants");
-const { use } = require("../router/user-authentication-router");
-
+const { farmTypes, soilTypes, waterSources } = require("../utils/constants");
 const userRegisterModel = async (req, res) => {
   try {
     const { email, password, firstName, lastName, mobileno } = req.body;
-    // Check if user already exists
     const { data: existingUser, error: fetchError } = await supabase
       .from("users")
       .select("*")
@@ -23,7 +20,6 @@ const userRegisterModel = async (req, res) => {
         error: "Database error while checking existing user.",
       });
     }
-
     if (existingUser) {
       return res.status(400).json({
         statusCode: 400,
@@ -39,7 +35,6 @@ const userRegisterModel = async (req, res) => {
       }
       return OTP;
     }
-
     const generateCode = generateOTP(4);
     const otp = sendEmailVerificationCode(email, generateCode);
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -56,6 +51,7 @@ const userRegisterModel = async (req, res) => {
         },
       ])
       .select();
+    const token = jwt.sign({ user_id: data.user_id }, "HS256");
     if (insertError) {
       console.error("Supabase Insert Error:", insertError);
       return res.status(400).json({
@@ -67,6 +63,7 @@ const userRegisterModel = async (req, res) => {
       statusCode: 201,
       message: "Registration successful",
       userid: data[0]?.user_id,
+      token,
     });
   } catch (error) {
     return res.status(500).json({
@@ -85,25 +82,13 @@ const moreDetailsModel = async (req, res, fileUrl) => {
       village,
       pincode,
       date_of_birth,
-      borewell_count,
-      canal,
-      rain_fed,
       is_farmer,
-      farm_size,
-      farming_type,
-      soil_type,
-      water_source,
+      house_number,
     } = req.body;
-    const array = JSON.parse(farming_type);
-    const farming_name = array
-      .map((type) =>
-        Object.keys(farmTypes).find((key) => farmTypes[key] === type)
-      )
-      .join(",");
     const image_ref_id = fileUrl.split("/")[2];
     const { data: addressData, error: insertError } = await supabase
       .from("address")
-      .insert([{ state, district, mandal, village, pincode }])
+      .insert([{ state, district, mandal, village, pincode, house_number }])
       .select()
       .single();
     if (insertError) {
@@ -117,14 +102,7 @@ const moreDetailsModel = async (req, res, fileUrl) => {
       .update({
         address_id: addressData.address_id,
         dob: date_of_birth,
-        borewell_count,
-        canal,
-        rain_fed,
         is_farmer,
-        farm_size,
-        farming_type: farming_name,
-        soil_type,
-        water_source,
         image_ref_id,
       })
       .eq("user_id", userId)
@@ -147,13 +125,86 @@ const moreDetailsModel = async (req, res, fileUrl) => {
     return res.status(500).json({ statusCode: 500, error: e.message });
   }
 };
+const createFarmingDetailsModel = async (req, res) => {
+  try {
+    const { user_id } = req.user;
+    if (!user_id) {
+      return res
+        .status(400)
+        .json({ statusCode: 400, error: "User ID is missing" });
+    }
+    const {
+      borewell_count,
+      farm_size,
+      farming_type,
+      soil_type,
+      water_source,
+      land_owner_type,
+    } = req.body;
+    const farming_name = farming_type
+      .map((type) =>
+        Object.keys(farmTypes).find((key) => farmTypes[key] === type)
+      )
+      .join(",");
+    const soil_name = soil_type
+      .map((type) =>
+        Object.keys(soilTypes).find((key) => soilTypes[key] === type)
+      )
+      .join(",");
+    const water_sources = water_source
+      .map((type) =>
+        Object.keys(waterSources).find((key) => waterSources[key] === type)
+      )
+      .join(",");
+
+    console.log("water_sources", water_sources);
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({
+        borewell_count,
+        farming_type: farming_name,
+        soil_type: soil_name,
+        water_source: water_sources,
+        land_owner_type,
+        farm_size,
+      })
+      .eq("user_id", user_id);
+    if (updateError) {
+      console.error("Supabase Update Error:", updateError);
+      return res
+        .status(400)
+        .json({ statusCode: 400, error: updateError.message });
+    }
+    const { data: userData, error: fetchError } = await supabase
+      .from("users")
+      .select()
+      .eq("user_id", user_id)
+      .single();
+    if (fetchError) {
+      console.error("Supabase Fetch Error:", fetchError);
+      return res
+        .status(400)
+        .json({ statusCode: 400, error: fetchError.message });
+    }
+    return res.status(200).json({
+      statusCode: 200,
+      message: "Farming details updated successfully",
+    });
+  } catch (e) {
+    console.error("Server Error:", e.message);
+    res.status(500).json({
+      statusCode: 500,
+      error: e.message,
+    });
+  }
+};
 
 const userLoginModel = async (req, res) => {
   const { email, password } = req.body;
   try {
     const { data: user, error: userError } = await supabase
       .from("users")
-      .select("password,user_id, email,address_id")
+      .select("password,user_id, email,address_id,isemailverified")
       .eq("email", email)
       .single();
     console.log(user);
@@ -177,7 +228,7 @@ const userLoginModel = async (req, res) => {
     const isUserAddressExist = !!user?.address_id;
     res.status(200).json({
       statusCode: 200,
-      email,
+      isemailverified: user?.isemailverified,
       isUserAddressExist,
       token,
     });
@@ -211,6 +262,9 @@ const verificationOtpModel = async (req, res) => {
         error: "Invalid OTP",
       });
     }
+    const token = jwt.sign({ user_id: user.user_id }, "HS256", {
+      expiresIn: "24h",
+    });
     const { error: updateError } = await supabase
       .from("users")
       .update({
@@ -227,6 +281,7 @@ const verificationOtpModel = async (req, res) => {
     res.status(200).json({
       statusCode: 200,
       message: "OTP Verification Success, Email Verified",
+      token,
     });
   } catch (e) {
     console.error("Server Error:", e.message);
@@ -510,4 +565,5 @@ module.exports = {
   getUserByIdModel,
   forgotPasswordModel,
   resetPasswordModel,
+  createFarmingDetailsModel,
 };

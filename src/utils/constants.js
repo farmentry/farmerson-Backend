@@ -8,5 +8,15 @@ const farmTypes = {
   2: "Dairy",
   3: "Poultry",
 };
+const soilTypes = {
+  0: "Red",
+  1: "Clay",
+  2: "Sandy",
+};
 
-module.exports = { farmTypes, userStatus };
+const waterSources = {
+  0: "Borewell",
+  1: "Canal",
+  2: "Rain-fed",
+};
+module.exports = { farmTypes, userStatus, soilTypes, waterSources };

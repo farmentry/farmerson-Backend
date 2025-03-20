@@ -9,6 +9,7 @@ const {
   getUserByIdModel,
   forgotPasswordModel,
   resetPasswordModel,
+  createFarmingDetailsModel,
 } = require("../model/user-authentication-model");
 const registerUserController = async (request, response) => {
   try {
@@ -59,6 +60,17 @@ const verificationOtpController = async (request, response) => {
 const userDetailsController = async (request, response) => {
   try {
     const responseData = await userDetailsModel(request, response);
+    return responseData;
+  } catch (error) {
+    return response.status(500).json({
+      statusbar: 500,
+      controllererror: error.message,
+    });
+  }
+};
+const createFarmingDetailsController = async (request, response) => {
+  try {
+    const responseData = await createFarmingDetailsModel(request, response);
     return responseData;
   } catch (error) {
     return response.status(500).json({
@@ -135,4 +147,5 @@ module.exports = {
   getUserByIdController,
   forgotPasswordController,
   resetPasswordController,
+  createFarmingDetailsController,
 };
