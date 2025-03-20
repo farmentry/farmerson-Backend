@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const app = express();
 const cors = require("cors");
+const path = require("path");
 const setupSwagger = require("./src/configaration/swagger-config");
 const userAuthenticationRouter = require("./src/router/user-authentication-router");
 const cropManagentRouter = require("./src/router/crop-router");
@@ -13,11 +14,12 @@ app.use(express.json());
 // Swagger Setup
 setupSwagger(app);
 // Routes
+app.use("/public", express.static(path.join(__dirname, "src", "public")));
+
 app.use("/auth", userAuthenticationRouter);
 app.use("/crop-management", cropManagentRouter);
 app.use("/horticulture", horticultureRoutes);
 app.use("/dairy", dairyRoutes);
-
 // Global Error Handling Middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
