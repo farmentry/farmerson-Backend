@@ -5,6 +5,7 @@ const bcrypt = require("bcryptjs");
 const sendEmailVerificationCode = require("../utils/send-mail");
 const jwt = require("jsonwebtoken");
 const { farmTypes } = require("../utils/constants");
+const { use } = require("../router/user-authentication-router");
 
 const userRegisterModel = async (req, res) => {
   try {
@@ -315,11 +316,14 @@ const getUserByIdModel = async (req, res) => {
     user.farming_type = user.farming_type
       ? user.farming_type.split(",").map((type) => farmTypes[type])
       : [];
-
+    const updatedUser = {
+      ...user,
+      avatar_url: `${process.env.BASE_URL_IMAGE}/${user?.image_ref_id}`,
+    };
     res.status(200).json({
       statusCode: 200,
       message: "User retrieved successfully",
-      data: user,
+      data: updatedUser,
       dairyDetails: dairyDetails || [],
     });
   } catch (e) {
