@@ -1,10 +1,13 @@
 const Joi = require("joi");
-const { createCropDetailsModel } = require("../model/crop-managament.model");
-
-const createCropDetails = async (request, response) => {
+const {
+  createOrUpdateCropDetailsModel,
+  getCropDetailsModel,
+  getCropByIdModel,
+} = require("../model/crop-managament.model");
+const createOrUpdateCropDetailsController = async (request, response) => {
   try {
-    // Define validation schema
     const cropSchema = Joi.object({
+      cropId: Joi.string().required(),
       cropName: Joi.string().required(),
       cropVariety: Joi.string().required(),
       sowingDate: Joi.date().required(),
@@ -14,8 +17,15 @@ const createCropDetails = async (request, response) => {
         .required(),
       totalCultivatedArea: Joi.number().positive().required(),
       expectedYield: Joi.number().positive().required(),
-      fertilizersUsed: Joi.string().allow(""),
-      pesticidesUsed: Joi.string().allow(""),
+      fertilizersUsed: Joi.alternatives().try(
+        Joi.string().allow(""),
+        Joi.boolean()
+      ),
+      pesticidesUsed: Joi.alternatives().try(
+        Joi.string().allow(""),
+        Joi.boolean()
+      ),
+
       marketPricePerQuintal: Joi.number().optional(),
     });
 
@@ -29,7 +39,7 @@ const createCropDetails = async (request, response) => {
     }
 
     // Call model function
-    await createCropDetailsModel(request, response);
+    await createOrUpdateCropDetailsModel(request, response);
   } catch (error) {
     console.error("Controller Error:", error);
     return response.status(500).json({
@@ -39,5 +49,30 @@ const createCropDetails = async (request, response) => {
     });
   }
 };
-
-module.exports = { createCropDetails };
+const getAllCropDetailsController = async (request, response) => {
+  try {
+    const responseData = await getCropDetailsModel(request, response);
+    return responseData;
+  } catch (error) {
+    return response.status(500).json({
+      statusbar: 500,
+      controllererror: error.message,
+    });
+  }
+};
+const getCropByIdController = async (request, response) => {
+  try {
+    const responseData = await getCropByIdModel(request, response);
+    return responseData;
+  } catch (error) {
+    return response.status(500).json({
+      statusbar: 500,
+      controllererror: error.message,
+    });
+  }
+};
+module.exports = {
+  createOrUpdateCropDetailsController,
+  getAllCropDetailsController,
+  getCropByIdController,
+};

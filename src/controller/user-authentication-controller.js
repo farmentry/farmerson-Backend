@@ -1,3 +1,5 @@
+const Joi = require("joi");
+
 const {
   userRegisterModel,
   userLoginModel,
@@ -10,9 +12,69 @@ const {
   forgotPasswordModel,
   resetPasswordModel,
   createFarmingDetailsModel,
+  reSendOtpModel,
 } = require("../model/user-authentication-model");
+
+const registerUserSchema = Joi.object({
+  email: Joi.string().email().required().messages({
+    "string.email": "Invalid email format",
+    "any.required": "Email is required",
+  }),
+  phone: Joi.string()
+    .pattern(/^\d{8,15}$/)
+    .required()
+    .messages({
+      "string.pattern.base": "Phone must be 8-15 digits long",
+      "any.required": "Phone is required",
+    }),
+  firstName: Joi.string()
+    .min(3)
+    .max(30)
+    .regex(/^[A-Za-z]+$/)
+    .required()
+    .messages({
+      "string.pattern.base": "First name should contain only letters",
+      "any.required": "First name is required",
+    }),
+  lastName: Joi.string()
+    .min(3)
+    .max(30)
+    .regex(/^[A-Za-z]+$/)
+    .required()
+    .messages({
+      "string.pattern.base": "First name should contain only letters",
+      "any.required": "First name is required",
+    }),
+  mobileno: Joi.string()
+    .pattern(/^\d{10,15}$/)
+    .required()
+    .messages({
+      "string.pattern.base": "Mobile number must be 10-15 digits long",
+      "any.required": "Mobile number is required",
+    }),
+  password: Joi.string()
+    .min(8)
+    .max(20)
+    .pattern(/^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)
+    .required()
+    .messages({
+      "string.pattern.base":
+        "Password must have at least 8 characters, 1 uppercase letter, 1 number, and 1 special character",
+      "any.required": "Password is required",
+    }),
+});
+
 const registerUserController = async (request, response) => {
   try {
+    const { error } = registerUserSchema.validate(request.body, {
+      abortEarly: false,
+    });
+    if (error) {
+      return response.status(400).json({
+        statusbar: 400,
+        validationErrors: error.details.map((err) => err.message),
+      });
+    }
     const responseData = await userRegisterModel(request, response);
     return responseData;
   } catch (error) {
@@ -22,6 +84,7 @@ const registerUserController = async (request, response) => {
     });
   }
 };
+
 const moreDetailsController = async (req, res, fileUrl) => {
   try {
     await moreDetailsModel(req, res, fileUrl);
@@ -49,6 +112,18 @@ const loginUserController = async (request, response) => {
 const verificationOtpController = async (request, response) => {
   try {
     const responseData = await verificationOtpModel(request, response);
+    return responseData;
+  } catch (error) {
+    return response.status(500).json({
+      statusbar: 500,
+      controllererror: error.message,
+    });
+  }
+};
+
+const reSendOtpController = async (request, response) => {
+  try {
+    const responseData = await reSendOtpModel(request, response);
     return responseData;
   } catch (error) {
     return response.status(500).json({
@@ -148,4 +223,5 @@ module.exports = {
   forgotPasswordController,
   resetPasswordController,
   createFarmingDetailsController,
+  reSendOtpController,
 };

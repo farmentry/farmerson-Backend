@@ -1,5 +1,4 @@
 const nodemailer = require("nodemailer");
-
 const sendEmailVerificationCode = (
   email,
   otp = null,

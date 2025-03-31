@@ -8,6 +8,7 @@ const userAuthenticationRouter = require("./src/router/user-authentication-route
 const cropManagentRouter = require("./src/router/crop-router");
 const horticultureRoutes = require("./src/router/horticulture-router");
 const dairyRoutes = require("./src/router/dairy-routes");
+const poultry = require("./src/router/poultry-router");
 const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
@@ -15,17 +16,15 @@ app.use(express.json());
 setupSwagger(app);
 // Routes
 app.use("/public", express.static(path.join(__dirname, "src", "public")));
-
 app.use("/auth", userAuthenticationRouter);
-app.use("/crop-management", cropManagentRouter);
+app.use("/crop", cropManagentRouter);
 app.use("/horticulture", horticultureRoutes);
 app.use("/dairy", dairyRoutes);
+app.use("/poultry", poultry);
 // Global Error Handling Middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send("Something broke!");
+  res.status(500).send("Something Wrong!");
 });
-
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

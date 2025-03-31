@@ -1,10 +1,14 @@
 const Joi = require("joi");
-const { createDailyModel } = require("../model/dairy-model");
+const {
+  createOrUpdateDailyModel,
+  getAllDailyDetailsModel,
+  getDailyByIdModel,
+} = require("../model/dairy-model");
 
-const createDailyController = async (req, res) => {
+const createOrUpdateDailyController = async (req, res) => {
   try {
-    // Joi validation schema
     const cattleSchema = Joi.object({
+      id: Joi.string().required(),
       cattleType: Joi.string()
         .valid("Cow", "Buffalo", "Goat", "Sheep")
         .required(),
@@ -15,7 +19,6 @@ const createDailyController = async (req, res) => {
         .valid("Grazing", "Stall-fed", "Mixed")
         .required(),
     });
-    // Validate request body
     const { error } = cattleSchema.validate(req.body);
     if (error) {
       return res.status(400).json({
@@ -23,8 +26,7 @@ const createDailyController = async (req, res) => {
         errors: error.details.map((err) => err.message),
       });
     }
-    const responseData = await createDailyModel(req, res);
-    // Send success response
+    const responseData = await createOrUpdateDailyModel(req, res);
     return res.status(200).json({
       responseData,
     });
@@ -32,9 +34,35 @@ const createDailyController = async (req, res) => {
     console.error("Controller Error:", error);
     return res.status(500).json({
       statusCode: 500,
-      error: error.message, // Only send error message
+      error: error.message,
     });
   }
 };
 
-module.exports = { createDailyController };
+const getAllDailyDetailsController = async (request, response) => {
+  try {
+    const responseData = await getAllDailyDetailsModel(request, response);
+    return responseData;
+  } catch (error) {
+    return response.status(500).json({
+      statusbar: 500,
+      controllererror: error.message,
+    });
+  }
+};
+const getDailyByIdController = async (request, response) => {
+  try {
+    const responseData = await getDailyByIdModel(request, response);
+    return responseData;
+  } catch (error) {
+    return response.status(500).json({
+      statusbar: 500,
+      controllererror: error.message,
+    });
+  }
+};
+module.exports = {
+  createOrUpdateDailyController,
+  getAllDailyDetailsController,
+  getDailyByIdController,
+};

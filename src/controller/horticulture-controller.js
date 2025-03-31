@@ -1,10 +1,14 @@
 const Joi = require("joi");
-const { addPlantationModel } = require("../model/horticulture-model");
+const {
+  addOrUpdatePlantationModel,
+  getByIdModel,
+  getAllDetailsModel,
+} = require("../model/horticulture-model");
 
-const addPlantationController = async (request, response) => {
+const addOrUpdatePlantationController = async (request, response) => {
   try {
     const horticultureSchema = Joi.object({
-      userId: Joi.number().required(),
+      id: Joi.string().required(),
       cropName: Joi.string().required(),
       variety: Joi.string().required(),
       plantingDate: Joi.date().required(),
@@ -16,10 +20,15 @@ const addPlantationController = async (request, response) => {
       cultivationType: Joi.string()
         .valid("Open Field", "Greenhouse", "Polyhouse")
         .required(),
-      pesticidesUsed: Joi.string().allow(""),
-      fertilizersUsed: Joi.string().allow(""),
+      fertilizersUsed: Joi.alternatives().try(
+        Joi.string().allow(""),
+        Joi.boolean()
+      ),
+      pesticidesUsed: Joi.alternatives().try(
+        Joi.string().allow(""),
+        Joi.boolean()
+      ),
     });
-
     const { error } = horticultureSchema.validate(request.body);
     if (error) {
       return response.status(400).json({
@@ -28,7 +37,7 @@ const addPlantationController = async (request, response) => {
       });
     }
 
-    const responseData = await addPlantationModel(request.body);
+    const responseData = await addOrUpdatePlantationModel(request, response);
     return response.status(responseData.statusCode).json(responseData);
   } catch (error) {
     return response.status(500).json({
@@ -38,4 +47,30 @@ const addPlantationController = async (request, response) => {
   }
 };
 
-module.exports = { addPlantationController };
+const getByIdController = async (request, response) => {
+  try {
+    const responseData = await getByIdModel(request, response);
+    return responseData;
+  } catch (error) {
+    return response.status(500).json({
+      statusbar: 500,
+      controllererror: error.message,
+    });
+  }
+};
+const getAllDetailsController = async (request, response) => {
+  try {
+    const responseData = await getAllDetailsModel(request, response);
+    return responseData;
+  } catch (error) {
+    return response.status(500).json({
+      statusbar: 500,
+      controllererror: error.message,
+    });
+  }
+};
+module.exports = {
+  addOrUpdatePlantationController,
+  getByIdController,
+  getAllDetailsController,
+};

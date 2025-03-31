@@ -17,6 +17,7 @@ const {
   forgotPasswordController,
   resetPasswordController,
   createFarmingDetailsController,
+  reSendOtpController,
 } = require("../controller/user-authentication-controller");
 
 const uploadDir = path.join(__dirname, "..", "public");
@@ -129,7 +130,17 @@ router.get("/forgot-password", async (req, res) => {
     });
   }
 });
-
+router.get("/forgot-password", async (req, res) => {
+  try {
+    const response = await forgotPasswordController(req, res);
+    return response;
+  } catch (error) {
+    res.status(500).json({
+      statusCode: 500,
+      Routererror: error.message,
+    });
+  }
+});
 router.get("/reset-password", async (req, res) => {
   try {
     await resetPasswordController(req, res);
@@ -140,6 +151,7 @@ router.get("/reset-password", async (req, res) => {
     });
   }
 });
+router.post("/re-send", reSendOtpController);
 router.get("/user-details", async (req, res) => {
   try {
     const response = await getUserDetailsController(req, res);
@@ -162,7 +174,6 @@ router.put("/api/users", async (req, res) => {
     });
   }
 });
-
 router.post(
   "/api/users/profile-picture",
   upload.single("profile_picture"),

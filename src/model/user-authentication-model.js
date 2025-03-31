@@ -26,7 +26,6 @@ const userRegisterModel = async (req, res) => {
         message: "Email already exists",
       });
     }
-
     function generateOTP(limit) {
       var digits = "0123456789";
       let OTP = "";
@@ -362,6 +361,17 @@ const getUserByIdModel = async (req, res) => {
       .select("*")
       .eq("user_id", user_id);
     ``;
+    const { data: poultryDetails, error: poultryError } = await supabase
+      .from("poultry")
+      .select("*")
+      .eq("user_id", user_id);
+    ``;
+    const { data: horticultureDetails, error: horticultureError } =
+      await supabase
+        .from("horticulture_crops")
+        .select("*")
+        .eq("user_id", user_id);
+    ``;
     if (error || !user) {
       return res.status(404).json({
         statusCode: 404,
@@ -380,6 +390,8 @@ const getUserByIdModel = async (req, res) => {
       message: "User retrieved successfully",
       data: updatedUser,
       dairyDetails: dairyDetails || [],
+      poultryDetails: poultryDetails || [],
+      horticultureDetails: horticultureDetails || [],
     });
   } catch (e) {
     console.error("Server Error:", e.message);
@@ -389,7 +401,6 @@ const getUserByIdModel = async (req, res) => {
     });
   }
 };
-
 const forgotPasswordModel = async (req, res) => {
   try {
     const { email } = req.body;
@@ -554,6 +565,10 @@ const updateUserDetailsModel = async (req, res) => {
     });
   }
 };
+const reSendOtpModel = async (req, res) => {
+  try {
+  } catch (error) {}
+};
 module.exports = {
   userRegisterModel,
   userLoginModel,
@@ -566,4 +581,5 @@ module.exports = {
   forgotPasswordModel,
   resetPasswordModel,
   createFarmingDetailsModel,
+  reSendOtpModel,
 };
