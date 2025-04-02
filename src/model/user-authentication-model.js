@@ -5,6 +5,7 @@ const bcrypt = require("bcryptjs");
 const sendEmailVerificationCode = require("../utils/send-mail");
 const jwt = require("jsonwebtoken");
 const { farmTypes, soilTypes, waterSources } = require("../utils/constants");
+const { use } = require("../router/user-authentication-router");
 const userRegisterModel = async (req, res) => {
   try {
     const { email, password, firstName, lastName, mobileno } = req.body;
@@ -565,10 +566,106 @@ const updateUserDetailsModel = async (req, res) => {
     });
   }
 };
-const reSendOtpModel = async (req, res) => {
-  try {
-  } catch (error) {}
+const generateOtp = () => Math.floor(1000 + Math.random() * 9000);
+const sendOtpEmail = async (email, otp) => {
+  let transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: "mailto:jeevantest64@gmail.com",
+      pass: "aora lfje anli ajnp",
+    },
+    tls: {
+      rejectUnauthorized: false,
+    },
+  });
+
+  let mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: "Your OTP Code",
+    text: `Your OTP for verification is ${otp}`,
+  };
+
+  return transporter.sendMail(mailOptions);
 };
+
+const reSendOtpModel = async (req, res) => {
+  const { email } = req.body;
+  try {
+    const now = new Date();
+    const cleanedEmail = email.trim().toLowerCase();
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("email", cleanedEmail)
+      .maybeSingle();
+    console.log("Resending OTP to:", user);
+    if (error || !user) {
+      return res.status(404).json({ statusCode: 404, error: "User not found" });
+    }
+    const createdAt = user.created_at ? new Date(user.created_at) : null;
+    const updatedAt = user.updated_at ? new Date(user.updated_at) : null;
+    const lastOtpTimestamp = user.otp_sent_at
+      ? new Date(user.otp_sent_at)
+      : null;
+
+    if (!createdAt) {
+      return res.status(400).json({
+        statusCode: 400,
+        error: "Invalid user timestamps. Please contact support.",
+      });
+    }
+    if (!updatedAt) {
+      console.warn("Warning: updated_at is null, treating it as first update.");
+    }
+
+    if (createdAt > now) {
+      return res.status(400).json({
+        statusCode: 400,
+        error: "Invalid account creation date.",
+      });
+    }
+    if (updatedAt > now) {
+      return res.status(400).json({
+        statusCode: 400,
+        error: "Invalid last update timestamp.",
+      });
+    }
+    if (lastOtpTimestamp && now - lastOtpTimestamp < 24 * 60 * 60 * 1000) {
+      return res.status(429).json({
+        statusCode: 429,
+        error: "OTP already sent. Please try again after 24 hours.",
+      });
+    }
+    const newOtp = generateOtp();
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({
+        otp: newOtp,
+        otp_sent_at: now.toISOString(),
+        updated_at: now.toISOString(),
+      })
+      .eq("email", cleanedEmail);
+    if (updateError) {
+      return res.status(500).json({
+        statusCode: 500,
+        error: "Failed to update OTP",
+      });
+    }
+    await sendOtpEmail(cleanedEmail, newOtp);
+    return res.status(200).json({
+      statusCode: 200,
+      message: "OTP Resent Successfully",
+    });
+  } catch (error) {
+    console.error("Server Error:", error.message);
+    return res.status(500).json({
+      statusCode: 500,
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   userRegisterModel,
   userLoginModel,
