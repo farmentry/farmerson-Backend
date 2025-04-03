@@ -3,39 +3,27 @@ const { getUser } = require("../utils/authentication");
 const createOrUpdateDailyModel = async (request, response) => {
   try {
     const { user_id } = request.user;
-    const { id, cattleType, breed, milkProduction, feedingType, totalCattle } =
-      request.body;
+    const { cattle } = request.body;
 
-    let data, error;
-
-    if (id === "0") {
-      ({ data, error } = await supabase
-        .from("dairy_farming")
-        .insert([
-          {
-            user_id,
-            cattle_type: cattleType,
-            feeding_type: feedingType,
-            total_cattle: totalCattle,
-            breed_type: breed,
-            milk_production_per_day: milkProduction,
-          },
-        ])
-        .select());
-    } else {
-      ({ data, error } = await supabase
-        .from("dairy_farming")
-        .update({
-          cattle_type: cattleType,
-          feeding_type: feedingType,
-          total_cattle: totalCattle,
-          breed_type: breed,
-          milk_production_per_day: milkProduction,
-        })
-        .eq("id", id)
-        .eq("user_id", user_id)
-        .select());
+    if (!Array.isArray(cattle) || cattle.length === 0) {
+      return response.status(400).json({
+        statusCode: 400,
+        error: "Invalid data. 'cattle' should be a non-empty array.",
+      });
     }
+    const insertData = cattle.map((item) => ({
+      user_id,
+      cattle_type: item.cattleType,
+      breed_type: item.breed,
+      total_cattle: item.totalCattle,
+      milk_production_per_day: item.isProducingMilk ? item.milkProduction : 0,
+      feeding_type: item.feedingType,
+      is_pregnant: item.isPregnant,
+    }));
+    const { data, error } = await supabase
+      .from("dairy_farming")
+      .insert(insertData)
+      .select();
 
     if (error) {
       console.error("Supabase Error:", error.message);
@@ -44,13 +32,10 @@ const createOrUpdateDailyModel = async (request, response) => {
         error: error.message,
       });
     }
-
     return response.status(200).json({
       statusCode: 200,
-      message:
-        id === "0"
-          ? "Details created successfully"
-          : "Details updated successfully",
+      message: "Cattle details added successfully",
+      data,
     });
   } catch (error) {
     console.error("Server Error:", error);
@@ -60,6 +45,7 @@ const createOrUpdateDailyModel = async (request, response) => {
     });
   }
 };
+
 const getAllDailyDetailsModel = async (request, response) => {
   try {
     const { user_id } = request.user;

@@ -19,17 +19,15 @@ const createOrUpdateDailyController = async (req, res) => {
         .valid("Grazing", "Stall-fed", "Mixed")
         .required(),
     });
-    const { error } = cattleSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({
-        statusCode: 400,
-        errors: error.details.map((err) => err.message),
-      });
-    }
+    // const { error } = cattleSchema.validate(req.body);
+    // if (error) {
+    //   return res.status(400).json({
+    //     statusCode: 400,
+    //     errors: error.details.map((err) => err.message),
+    //   });
+    // }
     const responseData = await createOrUpdateDailyModel(req, res);
-    return res.status(200).json({
-      responseData,
-    });
+    return responseData;
   } catch (error) {
     console.error("Controller Error:", error);
     return res.status(500).json({

@@ -17,8 +17,6 @@ const createOrUpdateCropDetailsModel = async (request, response) => {
     } = request.body;
 
     const { user_id } = request.user;
-
-    // Fetch user data
     const getUserData = await getUser(user_id);
     if (!getUserData?.user) {
       return response.status(404).json({
@@ -26,21 +24,9 @@ const createOrUpdateCropDetailsModel = async (request, response) => {
         message: "User not found",
       });
     }
-
     const { farm_size, cultivated_area } = getUserData.user;
-    const newCultivatedArea = cultivated_area + totalCultivatedArea;
-
-    // Check if the cultivated area exceeds the farm size
-    if (newCultivatedArea > farm_size) {
-      return response.status(400).json({
-        statusCode: 400,
-        message: "Total cultivated area exceeds farm size",
-        exceededSize: newCultivatedArea - farm_size,
-      });
-    }
-
+    let newCultivatedArea = cultivated_area;
     if (cropId === "0") {
-      // Insert new crop data
       const { error: insertError } = await supabase
         .from("crop_management")
         .insert([
@@ -66,8 +52,50 @@ const createOrUpdateCropDetailsModel = async (request, response) => {
           error: insertError.message,
         });
       }
+      newCultivatedArea += totalCultivatedArea;
     } else {
-      // Update existing crop data
+      const { data: existingCrop, error: fetchError } = await supabase
+        .from("crop_management")
+        .select("*")
+        .eq("crop_id", cropId)
+        .single();
+
+      if (fetchError || !existingCrop) {
+        return response.status(404).json({
+          statusCode: 404,
+          message: "Crop not found",
+        });
+      }
+
+      const isDifferent =
+        existingCrop.crop_name !== cropName ||
+        existingCrop.crop_variety !== cropVariety ||
+        existingCrop.sowing_date !== sowingDate ||
+        existingCrop.expected_harvest_date !== expectedHarvestDate ||
+        existingCrop.current_growth_stage !== currentGrowthStage ||
+        existingCrop.total_cultivated_area !== totalCultivatedArea ||
+        existingCrop.expected_yield !== expectedYield ||
+        existingCrop.fertilizers_used !== fertilizersUsed ||
+        existingCrop.pesticides_used !== pesticidesUsed ||
+        existingCrop.market_price_per_quintal !== marketPricePerQuintal;
+
+      if (!isDifferent) {
+        return response.status(200).json({
+          statusCode: 200,
+          message: "No changes detected, crop details remain unchanged",
+        });
+      }
+
+      const previousCultivatedArea = existingCrop.total_cultivated_area;
+      newCultivatedArea =
+        cultivated_area - previousCultivatedArea + totalCultivatedArea;
+      if (newCultivatedArea > farm_size) {
+        return response.status(400).json({
+          statusCode: 400,
+          message: "Total cultivated area exceeds farm size",
+          exceededSize: newCultivatedArea - farm_size,
+        });
+      }
       const { error: updateError } = await supabase
         .from("crop_management")
         .update({
@@ -92,8 +120,6 @@ const createOrUpdateCropDetailsModel = async (request, response) => {
         });
       }
     }
-
-    // Update cultivated area in the users table
     const { error: userUpdateError } = await supabase
       .from("users")
       .update({
@@ -110,8 +136,6 @@ const createOrUpdateCropDetailsModel = async (request, response) => {
         error: "Failed to update cultivated area",
       });
     }
-
-    // Send success response
     return response.status(200).json({
       statusCode: 200,
       message:

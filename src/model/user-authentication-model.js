@@ -215,9 +215,7 @@ const userLoginModel = async (req, res) => {
       });
     }
     const isPswTrue = await bcrypt.compare(password, user.password);
-    const token = jwt.sign({ user_id: user.user_id }, "HS256", {
-      expiresIn: "24h",
-    });
+    const token = jwt.sign({ user_id: user.user_id }, "HS256");
     console.log(isPswTrue);
     if (!isPswTrue) {
       return res.status(401).json({
@@ -262,9 +260,7 @@ const verificationOtpModel = async (req, res) => {
         error: "Invalid OTP",
       });
     }
-    const token = jwt.sign({ user_id: user.user_id }, "HS256", {
-      expiresIn: "24h",
-    });
+    const token = jwt.sign({ user_id: user.user_id }, "HS256");
     const { error: updateError } = await supabase
       .from("users")
       .update({

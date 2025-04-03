@@ -20,13 +20,6 @@ const registerUserSchema = Joi.object({
     "string.email": "Invalid email format",
     "any.required": "Email is required",
   }),
-  phone: Joi.string()
-    .pattern(/^\d{8,15}$/)
-    .required()
-    .messages({
-      "string.pattern.base": "Phone must be 8-15 digits long",
-      "any.required": "Phone is required",
-    }),
   firstName: Joi.string()
     .min(3)
     .max(30)
@@ -42,7 +35,7 @@ const registerUserSchema = Joi.object({
     .regex(/^[A-Za-z]+$/)
     .required()
     .messages({
-      "string.pattern.base": "First name should contain only letters",
+      "string.pattern.base": "Last name should contain only letters",
       "any.required": "First name is required",
     }),
   mobileno: Joi.string()
