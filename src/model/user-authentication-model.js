@@ -215,7 +215,9 @@ const userLoginModel = async (req, res) => {
       });
     }
     const isPswTrue = await bcrypt.compare(password, user.password);
-    const token = jwt.sign({ user_id: user.user_id }, "HS256");
+    const token = jwt.sign({ user_id: user.user_id }, "HS256", {
+      expiresIn: "24h",
+    });
     console.log(isPswTrue);
     if (!isPswTrue) {
       return res.status(401).json({

@@ -55,6 +55,7 @@ const registerUserSchema = Joi.object({
         "Password must have at least 8 characters, 1 uppercase letter, 1 number, and 1 special character",
       "any.required": "Password is required",
     }),
+  agent: Joi.alternatives().try(Joi.string().allow(""), Joi.boolean()),
 });
 
 const registerUserController = async (request, response) => {

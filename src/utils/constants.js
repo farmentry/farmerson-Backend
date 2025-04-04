@@ -13,10 +13,15 @@ const soilTypes = {
   1: "Clay",
   2: "Sandy",
 };
+const roles = {
+  1: "Farmer",
+  2: "Agent",
+  3: "Admin",
+};
 
 const waterSources = {
   0: "Borewell",
   1: "Canal",
   2: "Rain-fed",
 };
-module.exports = { farmTypes, userStatus, soilTypes, waterSources };
+module.exports = { farmTypes, userStatus, soilTypes, waterSources, roles };
