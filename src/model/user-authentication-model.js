@@ -4,11 +4,16 @@ const nodemailer = require("nodemailer");
 const bcrypt = require("bcryptjs");
 const sendEmailVerificationCode = require("../utils/send-mail");
 const jwt = require("jsonwebtoken");
-const { farmTypes, soilTypes, waterSources } = require("../utils/constants");
-const { use } = require("../router/user-authentication-router");
+const {
+  farmTypes,
+  soilTypes,
+  waterSources,
+  roles,
+} = require("../utils/constants");
 const userRegisterModel = async (req, res) => {
   try {
-    const { email, password, firstName, lastName, mobileno } = req.body;
+    const { email, password, firstName, lastName, mobileno, agent } = req.body;
+    const user_id = req?.user?.user_id;
     const { data: existingUser, error: fetchError } = await supabase
       .from("users")
       .select("*")
@@ -48,10 +53,20 @@ const userRegisterModel = async (req, res) => {
           password: hashedPassword,
           mobile_no: mobileno,
           otp: generateCode,
+          role_id: agent ? 2 : 1,
+          agent_id: user_id || null,
         },
       ])
       .select();
-    const token = jwt.sign({ user_id: data.user_id }, "HS256");
+    console.log("data", data);
+    const token = jwt.sign(
+      {
+        user_id: data[0].user_id,
+        role: data[0].role_id == 2 ? "Agent" : "Farmer",
+      },
+      "HS256"
+    );
+
     if (insertError) {
       console.error("Supabase Insert Error:", insertError);
       return res.status(400).json({
@@ -64,6 +79,7 @@ const userRegisterModel = async (req, res) => {
       message: "Registration successful",
       userid: data[0]?.user_id,
       token,
+      role: data[0].role_id == 2 ? "Agent" : "Farmer",
     });
   } catch (error) {
     return res.status(500).json({
@@ -204,7 +220,7 @@ const userLoginModel = async (req, res) => {
   try {
     const { data: user, error: userError } = await supabase
       .from("users")
-      .select("password,user_id, email,address_id,isemailverified")
+      .select("password,user_id, email,address_id,isemailverified,role_id")
       .eq("email", email)
       .single();
     console.log(user);
@@ -215,7 +231,10 @@ const userLoginModel = async (req, res) => {
       });
     }
     const isPswTrue = await bcrypt.compare(password, user.password);
-    const token = jwt.sign({ user_id: user.user_id }, "HS256");
+    const token = jwt.sign(
+      { user_id: user.user_id, role: user.role_id == 2 ? "Agent" : "Farmer" },
+      "HS256"
+    );
     console.log(isPswTrue);
     if (!isPswTrue) {
       return res.status(401).json({
@@ -229,6 +248,7 @@ const userLoginModel = async (req, res) => {
       isemailverified: user?.isemailverified,
       isUserAddressExist,
       token,
+      role: user.role_id == 2 ? "Agent" : "Farmer",
     });
   } catch (e) {
     console.error("Server Error:", e.message);
@@ -260,7 +280,10 @@ const verificationOtpModel = async (req, res) => {
         error: "Invalid OTP",
       });
     }
-    const token = jwt.sign({ user_id: user.user_id }, "HS256");
+    const token = jwt.sign(
+      { user_id: user.user_id, role: user.role_id == "2" ? "Agent" : "Farmer" },
+      "HS256"
+    );
     const { error: updateError } = await supabase
       .from("users")
       .update({
@@ -661,7 +684,69 @@ const reSendOtpModel = async (req, res) => {
     });
   }
 };
-
+const getAllFarmersModel = async (req, res) => {
+  try {
+    const { user_id } = req.user;
+    const { data: user, error } = await supabase
+      .from("users")
+      .select(
+        `
+        user_id, first_name, last_name, dob, email, active, is_farmer, farming_type,image_ref_id, created_at,
+        role: role_id (role_name),
+        address: address_id (state, district, mandal, village, pincode),
+        crops: crop_management!fk_user (
+          crop_name, crop_variety, sowing_date, expected_harvest_date, 
+          current_growth_stage, total_cultivated_area, expected_yield, 
+          fertilizers_used, pesticides_used, market_price_per_quintal
+        )
+      `
+      )
+      .eq("agent_id", user_id);
+    const { data: dairyDetails, error: dairyError } = await supabase
+      .from("dairy_farming")
+      .select("*")
+      .eq("user_id", user_id);
+    ``;
+    const { data: poultryDetails, error: poultryError } = await supabase
+      .from("poultry")
+      .select("*")
+      .eq("user_id", user_id);
+    ``;
+    const { data: horticultureDetails, error: horticultureError } =
+      await supabase
+        .from("horticulture_crops")
+        .select("*")
+        .eq("user_id", user_id);
+    ``;
+    if (error || !user) {
+      return res.status(404).json({
+        statusCode: 404,
+        error: "User not found",
+      });
+    }
+    user.farming_type = user.farming_type
+      ? user.farming_type.split(",").map((type) => farmTypes[type])
+      : [];
+    const updatedUser = {
+      ...user,
+      // avatar_url: `${process.env.BASE_URL_IMAGE}/${user?.image_ref_id}`,
+    };
+    res.status(200).json({
+      statusCode: 200,
+      message: "User retrieved successfully",
+      data: updatedUser,
+      // dairyDetails: dairyDetails || [],
+      // poultryDetails: poultryDetails || [],
+      // horticultureDetails: horticultureDetails || [],
+    });
+  } catch (e) {
+    console.error("Server Error:", e.message);
+    res.status(500).json({
+      statusCode: 500,
+      error: e.message,
+    });
+  }
+};
 module.exports = {
   userRegisterModel,
   userLoginModel,
@@ -675,4 +760,5 @@ module.exports = {
   resetPasswordModel,
   createFarmingDetailsModel,
   reSendOtpModel,
+  getAllFarmersModel,
 };
