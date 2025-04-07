@@ -13,6 +13,7 @@ const {
   resetPasswordModel,
   createFarmingDetailsModel,
   reSendOtpModel,
+  getAllFarmersModel,
 } = require("../model/user-authentication-model");
 
 const registerUserSchema = Joi.object({
@@ -55,7 +56,9 @@ const registerUserSchema = Joi.object({
         "Password must have at least 8 characters, 1 uppercase letter, 1 number, and 1 special character",
       "any.required": "Password is required",
     }),
-  agent: Joi.alternatives().try(Joi.string().allow(""), Joi.boolean()),
+  agent: Joi.alternatives()
+    .try(Joi.string().allow(""), Joi.boolean())
+    .optional(),
 });
 
 const registerUserController = async (request, response) => {
@@ -193,6 +196,17 @@ const getUserDetailsController = async (request, response) => {
     });
   }
 };
+const getAllFarmersController = async (request, response) => {
+  try {
+    const responseData = await getAllFarmersModel(request, response);
+    return responseData;
+  } catch (error) {
+    return response.status(500).json({
+      statusbar: 500,
+      controllererror: error.message,
+    });
+  }
+};
 const updateUserDetailsController = async (request, response) => {
   try {
     const responseData = await updateUserDetailsModel(request, response);
@@ -218,4 +232,5 @@ module.exports = {
   resetPasswordController,
   createFarmingDetailsController,
   reSendOtpController,
+  getAllFarmersController,
 };

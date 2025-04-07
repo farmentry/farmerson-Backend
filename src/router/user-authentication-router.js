@@ -4,7 +4,7 @@ const path = require("path");
 const fs = require("fs");
 const router = express.Router();
 const handleRoute = require("../utils/request-handler");
-const { requiredToken } = require("../utils/authentication");
+const { requiredToken, agentOnly } = require("../utils/authentication");
 const {
   registerUserController,
   loginUserController,
@@ -18,6 +18,7 @@ const {
   resetPasswordController,
   createFarmingDetailsController,
   reSendOtpController,
+  getAllFarmersController,
 } = require("../controller/user-authentication-controller");
 
 const uploadDir = path.join(__dirname, "..", "public");
@@ -34,9 +35,7 @@ const storage = multer.diskStorage({
     );
   },
 });
-
 const upload = multer({ storage });
-// Home page route.
 router.post("/register", async (req, res) => {
   try {
     const response = await registerUserController(req, res);
@@ -48,6 +47,13 @@ router.post("/register", async (req, res) => {
     });
   }
 });
+router.post("/add-farmer", requiredToken, agentOnly, registerUserController);
+router.get(
+  "/get-all-farmers",
+  requiredToken,
+  agentOnly,
+  getAllFarmersController
+);
 router.post(
   "/personal-information/:userId",
   upload.single("file"),

@@ -28,18 +28,10 @@ const requiredToken = async (request, response, next) => {
       });
     } else {
       const authResult = await decodeToken(request.headers["authorization"]);
-      //   if (authResult.expiredAt) {
-      //     response.status(406).send({
-      //       status: 406,
-      //       error: true,
-      //       message: "Session Expired. Log-in Required",
-      //       data: null,
-      //     });
-      //   } else
       if (authResult.user_id) {
         const { data: isUserVerified, error: userError } = await supabase
           .from("users")
-          .select("first_name,user_id, email")
+          .select("first_name,user_id,role_id, email")
           .eq("user_id", authResult.user_id)
           .single();
         console.log(">>>>>>>>>>>>>>", isUserVerified);
@@ -168,9 +160,21 @@ const getUser = async (userId) => {
     return { success: false, error: err.message };
   }
 };
+const agentOnly = (req, res, next) => {
+  console.log(req?.user);
+  if (req.user?.role_id !== 2) {
+    return res.status(403).json({
+      status: 403,
+      error: true,
+      message: "Access Denied: Agents only",
+    });
+  }
+  next();
+};
 
 module.exports = {
   requiredToken,
   requiredAdmin,
   getUser,
+  agentOnly,
 };
