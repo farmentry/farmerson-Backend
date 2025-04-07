@@ -261,6 +261,12 @@ const createOrUpdateCropDetailsAgentModel = async (request, response) => {
     const { farm_size, cultivated_area } = getUserData.user;
     let newCultivatedArea = cultivated_area;
     if (cropId === "0") {
+      if (farm_size < cultivated_area + totalCultivatedArea) {
+        return response.status(400).json({
+          statusCode: 400,
+          message: "Total cultivated area exceeds farm size",
+        });
+      }
       const { error: insertError } = await supabase
         .from("crop_management")
         .insert([
@@ -276,6 +282,7 @@ const createOrUpdateCropDetailsAgentModel = async (request, response) => {
             fertilizers_used: fertilizersUsed,
             pesticides_used: pesticidesUsed,
             market_price_per_quintal: marketPricePerQuintal,
+            state_crop: "1",
           },
         ]);
 
@@ -388,20 +395,16 @@ const getCropDetailsAgentModel = async (request, response) => {
   try {
     const user_id = request.params.id;
     const getUserData = await getUser(user_id);
-    console.log(">>>>>>>>>", getUserData);
-
     if (!getUserData?.user) {
       return response.status(404).json({
         statusCode: 404,
         message: "User not found",
       });
     }
-
     const { data: cropDetails, error: cropError } = await supabase
       .from("crop_management")
       .select("*")
       .eq("user_id", user_id);
-
     if (cropError) {
       console.error("Supabase Query Error:", cropError);
       return response.status(400).json({
@@ -409,11 +412,13 @@ const getCropDetailsAgentModel = async (request, response) => {
         error: cropError.message,
       });
     }
-
+    const updatedCropDetails = cropDetails.filter(
+      (cropData) => cropData.state_crop === "1"
+    );
     return response.status(200).json({
       statusCode: 200,
       message: "Crop details retrieved successfully",
-      data: cropDetails,
+      data: updatedCropDetails,
     });
   } catch (error) {
     console.error("Internal Server Error:", error);
@@ -424,10 +429,40 @@ const getCropDetailsAgentModel = async (request, response) => {
     });
   }
 };
+const deleteByIdModel = async (request, response) => {
+  try {
+    const { user_id } = request.user;
+    const crop_id = request.params.crop_id;
+    const { data, error } = await supabase
+      .from("crop_management")
+      .update({ state_crop: 2 })
+      .eq("crop_id", crop_id);
+    if (error) {
+      console.error("Supabase Update Error:", error);
+      return response.status(400).json({
+        statusCode: 400,
+        error: error,
+      });
+    }
+    return response.status(200).json({
+      statusCode: 200,
+      message: "crop deleted  successfully",
+    });
+  } catch (error) {
+    console.error("Internal Server Error:", error);
+    return response.status(500).json({
+      statusCode: 500,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createOrUpdateCropDetailsModel,
   getCropDetailsModel,
   getCropByIdModel,
   createOrUpdateCropDetailsAgentModel,
   getCropDetailsAgentModel,
+  deleteByIdModel,
 };

@@ -5,6 +5,7 @@ const {
   getCropByIdModel,
   createOrUpdateCropDetailsAgentModel,
   getCropDetailsAgentModel,
+  deleteByIdModel,
 } = require("../model/crop-managament.model");
 const createOrUpdateCropDetailsController = async (request, response) => {
   try {
@@ -129,10 +130,23 @@ const getAllCropDetailsAgentController = async (request, response) => {
     });
   }
 };
+
+const deleteByIdController = async (request, response) => {
+  try {
+    const responseData = await deleteByIdModel(request, response);
+    return responseData;
+  } catch (error) {
+    return response.status(500).json({
+      statusbar: 500,
+      controllererror: error.message,
+    });
+  }
+};
 module.exports = {
   createOrUpdateCropDetailsController,
   getAllCropDetailsController,
   getCropByIdController,
   createOrUpdateCropDetailsAgentController,
   getAllCropDetailsAgentController,
+  deleteByIdController,
 };

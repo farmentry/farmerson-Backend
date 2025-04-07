@@ -7,6 +7,7 @@ const {
   getCropByIdController,
   createOrUpdateCropDetailsAgentController,
   getAllCropDetailsAgentController,
+  deleteByIdController,
 } = require("../controller/crop-managament.controller");
 
 router.post("/create", requiredToken, createOrUpdateCropDetailsController);
@@ -26,10 +27,10 @@ router.get(
   agentOnly,
   getAllCropDetailsAgentController
 );
-router.get(
-  "/getcrop/:crop_id",
+router.delete(
+  "/delete/:crop_id",
   requiredToken,
   agentOnly,
-  getCropByIdController
+  deleteByIdController
 );
 module.exports = router;
