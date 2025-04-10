@@ -103,7 +103,7 @@ router.post("/user-details", async (req, res) => {
     });
   }
 });
-router.post("/farming-details", requiredToken, async (req, res) => {
+router.post("/farming-details/:id", requiredToken, async (req, res) => {
   try {
     const response = await createFarmingDetailsController(req, res);
     return response;
@@ -180,6 +180,12 @@ router.put("/api/users", async (req, res) => {
     });
   }
 });
+router.post(
+  "/update/:id",
+  requiredToken,
+  upload.single("file"),
+  updateUserDetailsController
+);
 router.post(
   "/api/users/profile-picture",
   upload.single("profile_picture"),

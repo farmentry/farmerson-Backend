@@ -3,6 +3,7 @@ const handleRoute = require("../utils/request-handler");
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcryptjs");
 const sendEmailVerificationCode = require("../utils/send-mail");
+const { getUser } = require("../utils/authentication");
 const jwt = require("jsonwebtoken");
 const {
   farmTypes,
@@ -101,7 +102,7 @@ const moreDetailsModel = async (req, res, fileUrl) => {
       is_farmer,
       house_number,
     } = req.body;
-    const image_ref_id = fileUrl.split("/")[2];
+    const image_ref_id = fileUrl?.split("/")[2];
     const { data: addressData, error: insertError } = await supabase
       .from("address")
       .insert([{ state, district, mandal, village, pincode, house_number }])
@@ -143,7 +144,7 @@ const moreDetailsModel = async (req, res, fileUrl) => {
 };
 const createFarmingDetailsModel = async (req, res) => {
   try {
-    const { user_id } = req.user;
+    const user_id = req.params.id;
     if (!user_id) {
       return res
         .status(400)
@@ -548,17 +549,84 @@ const getUserDetailsModel = async (req, res) => {
     });
   }
 };
-const updateUserDetailsModel = async (req, res) => {
+const updateUserDetailsModel = async (req, res, fileUrl) => {
   try {
-    const { email, dob } = req.body;
-    console;
-    console.log("Updating DOB for user:", email, "to:", dob);
+    const user_id = req.params.id;
+
+    const getUserData = await getUser(user_id);
+
+    if (!getUserData?.user) {
+      return response.status(404).json({
+        statusCode: 404,
+        message: "User not found",
+      });
+    }
+    const {
+      state,
+      district,
+      mandal,
+      village,
+      pincode,
+      date_of_birth,
+      is_farmer,
+      house_number,
+      first_name,
+      last_name,
+      email,
+      borewell_count,
+      farm_size,
+      farming_type,
+      soil_type,
+      water_source,
+      land_owner_type,
+    } = req.body;
+    if (getUserData?.cultivated_area > farm_size) {
+      return res.status(400).json({
+        statusCode: 400,
+        error: "Farm size should be greater than cultivated area",
+      });
+    }
+    const farming_name = JSON.parse(farming_type)
+      .map((type) =>
+        Object.keys(farmTypes).find((key) => farmTypes[key] === type)
+      )
+      .join(",");
+    const soil_name = JSON.parse(soil_type)
+      .map((type) =>
+        Object.keys(soilTypes).find((key) => soilTypes[key] === type)
+      )
+      .join(",");
+    const water_sources = JSON.parse(water_source)
+      .map((type) =>
+        Object.keys(waterSources).find((key) => waterSources[key] === type)
+      )
+      .join(",");
+    const image_id = fileUrl?.split("/")[2];
     const { data, error } = await supabase
       .from("users")
-      .update({ dob })
-      .eq("email", email)
+      .update({
+        first_name: first_name,
+        last_name: last_name,
+        email: email,
+        dob: date_of_birth,
+        image_ref_id: image_id,
+        borewell_count,
+        farming_type: farming_name,
+        soil_type: soil_name,
+        water_source: water_sources,
+        land_owner_type,
+        farm_size,
+        is_farmer,
+      })
+      .eq("user_id", user_id)
       .select()
-      .maybeSingle();
+      .single();
+    const { addressUpdate, updateError } = await supabase
+      .from("address")
+      .update({ state, district, mandal, village, pincode, house_number })
+      .eq("address_id", data?.address_id)
+      .select()
+      .single();
     if (error) {
       console.error("Error updating DOB:", error);
       return res.status(500).json({
@@ -566,16 +634,15 @@ const updateUserDetailsModel = async (req, res) => {
         error: error.message,
       });
     }
-    if (!data) {
-      return res.status(404).json({
-        statusCode: 404,
-        error: "User not found",
-      });
-    }
+    // if (!data) {
+    //   return res.status(404).json({
+    //     statusCode: 404,
+    //     error: "User not found",
+    //   });
+    // }
     res.status(200).json({
       statusCode: 200,
-      message: "User DOB updated successfully",
-      data,
+      message: "User Profile updated successfully",
     });
   } catch (err) {
     console.error("Unexpected error:", err);
@@ -691,53 +758,25 @@ const getAllFarmersModel = async (req, res) => {
       .from("users")
       .select(
         `
-        user_id, first_name, last_name, dob, email, active, is_farmer, farming_type,image_ref_id, created_at,
+        user_id, first_name, last_name, dob, email,isemailverified, active, is_farmer,farm_size, farming_type,image_ref_id, created_at,
         role: role_id (role_name),
-        address: address_id (state, district, mandal, village, pincode),
-        crops: crop_management!fk_user (
-          crop_name, crop_variety, sowing_date, expected_harvest_date, 
-          current_growth_stage, total_cultivated_area, expected_yield, 
-          fertilizers_used, pesticides_used, market_price_per_quintal
-        )
+        address: address_id (state, district, mandal, village, pincode)
       `
       )
       .eq("agent_id", user_id);
-    const { data: dairyDetails, error: dairyError } = await supabase
-      .from("dairy_farming")
-      .select("*")
-      .eq("user_id", user_id);
-    ``;
-    const { data: poultryDetails, error: poultryError } = await supabase
-      .from("poultry")
-      .select("*")
-      .eq("user_id", user_id);
-    ``;
-    const { data: horticultureDetails, error: horticultureError } =
-      await supabase
-        .from("horticulture_crops")
-        .select("*")
-        .eq("user_id", user_id);
-    ``;
-    if (error || !user) {
-      return res.status(404).json({
-        statusCode: 404,
-        error: "User not found",
-      });
-    }
-    user.farming_type = user.farming_type
-      ? user.farming_type.split(",").map((type) => farmTypes[type])
-      : [];
-    const updatedUser = {
-      ...user,
-      // avatar_url: `${process.env.BASE_URL_IMAGE}/${user?.image_ref_id}`,
-    };
+    const UpdateData = Object.values(user).map((userInfo) => ({
+      ...userInfo,
+      farming_type: userInfo?.farming_type
+        ?.split(",")
+        .map((item) => farmTypes[item]),
+      avatar_url: userInfo?.image_ref_id
+        ? `${process.env.BASE_URL_IMAGE}${userInfo?.image_ref_id}`
+        : "",
+    }));
     res.status(200).json({
       statusCode: 200,
       message: "User retrieved successfully",
-      data: updatedUser,
-      // dairyDetails: dairyDetails || [],
-      // poultryDetails: poultryDetails || [],
-      // horticultureDetails: horticultureDetails || [],
+      data: UpdateData,
     });
   } catch (e) {
     console.error("Server Error:", e.message);

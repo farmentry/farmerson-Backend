@@ -209,7 +209,12 @@ const getAllFarmersController = async (request, response) => {
 };
 const updateUserDetailsController = async (request, response) => {
   try {
-    const responseData = await updateUserDetailsModel(request, response);
+    const fileUrl = request?.file ? `/public/${request.file.filename}` : null;
+    const responseData = await updateUserDetailsModel(
+      request,
+      response,
+      fileUrl
+    );
     return responseData;
   } catch (error) {
     return response.status(500).json({
@@ -218,7 +223,6 @@ const updateUserDetailsController = async (request, response) => {
     });
   }
 };
-
 module.exports = {
   registerUserController,
   loginUserController,

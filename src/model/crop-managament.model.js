@@ -264,7 +264,9 @@ const createOrUpdateCropDetailsAgentModel = async (request, response) => {
       if (farm_size < cultivated_area + totalCultivatedArea) {
         return response.status(400).json({
           statusCode: 400,
-          message: "Total cultivated area exceeds farm size",
+          message: farm_size
+            ? "The total cultivated area exceeds the available farm size. Please adjust the values."
+            : "Please update farming details first to proceed.",
         });
       }
       const { error: insertError } = await supabase
