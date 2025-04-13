@@ -1,7 +1,7 @@
-const userStatus = {
-  active: 1,
-  inactive: 0,
-};
+// const userStatus = {
+//   active: 1,
+//   inactive: 0,
+// };
 const farmTypes = {
   0: "Agriculture",
   1: "Horticulture",
@@ -24,4 +24,4 @@ const waterSources = {
   1: "Canal",
   2: "Rain-fed",
 };
-module.exports = { farmTypes, userStatus, soilTypes, waterSources, roles };
+module.exports = { farmTypes, soilTypes, waterSources, roles };
