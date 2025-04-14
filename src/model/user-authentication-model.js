@@ -365,7 +365,7 @@ const getUserByIdModel = async (req, res) => {
       .from("users")
       .select(
         `
-        user_id, first_name, last_name, dob, email, active, is_farmer, farming_type,image_ref_id, created_at,
+        user_id, first_name, last_name, dob, email, isemailverified,active, is_farmer, farming_type,image_ref_id, created_at,
         role: role_id (role_name),
         address: address_id (state, district, mandal, village, pincode),
         crops: crop_management!fk_user (
@@ -758,9 +758,8 @@ const getAllFarmersModel = async (req, res) => {
       .from("users")
       .select(
         `
-        user_id, first_name, last_name, dob, email,isemailverified, active, is_farmer,farm_size, farming_type,image_ref_id, created_at,
-        role: role_id (role_name),
-        address: address_id (state, district, mandal, village, pincode)
+        user_id, first_name, last_name, dob, email,verified_status,isemailverified, active, is_farmer,farm_size, farming_type,image_ref_id, created_at,
+        role: role_id (role_name)
       `
       )
       .eq("agent_id", user_id);
@@ -786,6 +785,52 @@ const getAllFarmersModel = async (req, res) => {
     });
   }
 };
+const verifyFarmersModel = async (req, res) => {
+  try {
+    const agent_id = req.user?.user_id;
+    const user_id = req.params.id;
+    const requestBody = req.body;
+    const { data: user, error: fetchError } = await supabase
+      .from("users")
+      .select(
+        `
+        user_id, first_name, last_name
+        `
+      )
+      .eq("user_id", user_id)
+      .eq("agent_id", agent_id)
+      .single();
+
+    if (fetchError || !user) {
+      return res.status(404).json({
+        statusCode: 404,
+        error: "User not found",
+      });
+    }
+    const { data: updatedUser, error: updateError } = await supabase
+      .from("users")
+      .update({ verified_status: requestBody.status })
+      .eq("user_id", user.user_id)
+      .select();
+
+    if (updateError || !updatedUser) {
+      return res.status(400).json({
+        statusCode: 400,
+        error: "Failed to update verified status",
+      });
+    }
+    res.status(200).json({
+      statusCode: 200,
+      message: "User verified successfully",
+    });
+  } catch (e) {
+    console.error("Server Error:", e.message);
+    res.status(500).json({
+      statusCode: 500,
+      error: e.message,
+    });
+  }
+};
 module.exports = {
   userRegisterModel,
   userLoginModel,
@@ -800,4 +845,5 @@ module.exports = {
   createFarmingDetailsModel,
   reSendOtpModel,
   getAllFarmersModel,
+  verifyFarmersModel,
 };

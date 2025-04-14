@@ -19,6 +19,7 @@ const {
   createFarmingDetailsController,
   reSendOtpController,
   getAllFarmersController,
+  verifyFarmersController,
 } = require("../controller/user-authentication-controller");
 
 const uploadDir = path.join(__dirname, "..", "public");
@@ -234,5 +235,11 @@ router.post(
       res.status(500).json({ error: error.message });
     }
   })
+);
+router.post(
+  "/verify-farmer/:id",
+  requiredToken,
+  agentOnly,
+  verifyFarmersController
 );
 module.exports = router;

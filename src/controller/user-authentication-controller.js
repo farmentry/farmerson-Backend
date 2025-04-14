@@ -14,6 +14,7 @@ const {
   createFarmingDetailsModel,
   reSendOtpModel,
   getAllFarmersModel,
+  verifyFarmersModel,
 } = require("../model/user-authentication-model");
 
 const registerUserSchema = Joi.object({
@@ -223,6 +224,17 @@ const updateUserDetailsController = async (request, response) => {
     });
   }
 };
+const verifyFarmersController = async (request, response) => {
+  try {
+    const responseData = await verifyFarmersModel(request, response);
+    return responseData;
+  } catch (error) {
+    return response.status(500).json({
+      statusbar: 500,
+      controllererror: error.message,
+    });
+  }
+};
 module.exports = {
   registerUserController,
   loginUserController,
@@ -237,4 +249,5 @@ module.exports = {
   createFarmingDetailsController,
   reSendOtpController,
   getAllFarmersController,
+  verifyFarmersController,
 };
