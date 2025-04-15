@@ -13,6 +13,9 @@ const addOrUpdatePlantationModel = async (request, response) => {
       cultivationType,
       pesticidesUsed,
       fertilizersUsed,
+      cropType,
+      organic,
+      recurringCrop,
     } = request.body;
     const { user_id } = request.user;
     const getUserData = await getUser(user_id);
@@ -35,6 +38,9 @@ const addOrUpdatePlantationModel = async (request, response) => {
           type_of_cultivation: cultivationType,
           pesticides_used: pesticidesUsed,
           fertilizers_used: fertilizersUsed,
+          is_recurring: recurringCrop,
+          is_organic: organic,
+          crop_type: cropType,
         })
         .eq("id", id)
         .eq("user_id", user_id);
@@ -63,6 +69,9 @@ const addOrUpdatePlantationModel = async (request, response) => {
           type_of_cultivation: cultivationType,
           pesticides_used: pesticidesUsed,
           fertilizers_used: fertilizersUsed,
+          is_recurring: recurringCrop,
+          is_organic: organic,
+          crop_type: cropType,
         },
       ]);
       if (error) {
@@ -176,6 +185,9 @@ const addOrUpdatePlantationAgentModel = async (request, response) => {
       cultivationType,
       pesticidesUsed,
       fertilizersUsed,
+      cropType,
+      organic,
+      recurringCrop,
     } = request.body;
     const user_id = request.params.id;
     const getUserData = await getUser(user_id);
@@ -198,6 +210,9 @@ const addOrUpdatePlantationAgentModel = async (request, response) => {
           type_of_cultivation: cultivationType,
           pesticides_used: pesticidesUsed,
           fertilizers_used: fertilizersUsed,
+          is_recurring: recurringCrop,
+          is_organic: organic,
+          crop_type: cropType,
         })
         .eq("id", id)
         .eq("user_id", user_id);
@@ -226,6 +241,9 @@ const addOrUpdatePlantationAgentModel = async (request, response) => {
           type_of_cultivation: cultivationType,
           pesticides_used: pesticidesUsed,
           fertilizers_used: fertilizersUsed,
+          is_recurring: recurringCrop,
+          is_organic: organic,
+          crop_type: cropType,
         },
       ]);
       if (error) {

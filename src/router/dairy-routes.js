@@ -4,9 +4,33 @@ const {
   createOrUpdateDailyController,
   getAllDailyDetailsController,
   getDailyByIdController,
+  createOrUpdateDailyAgentController,
+  getAllDailyDetailsAgentController,
+  deleteByIdAgentController,
 } = require("../controller/dairy-controller");
-const { requiredToken } = require("../utils/authentication");
+const { requiredToken, agentOnly } = require("../utils/authentication");
 router.post("/create", requiredToken, createOrUpdateDailyController);
 router.get("/get-dairy-details", requiredToken, getAllDailyDetailsController);
 router.get("/get-dairy/:id", requiredToken, getDailyByIdController);
+
+//agent routes
+router.post(
+  "/create/:id",
+  requiredToken,
+  agentOnly,
+  createOrUpdateDailyAgentController
+);
+router.get(
+  "/get-dairy-details/:id",
+  requiredToken,
+  agentOnly,
+  getAllDailyDetailsAgentController
+);
+router.get("/get-dairy/:id", requiredToken, agentOnly, getDailyByIdController);
+router.delete(
+  "/delete/:id",
+  requiredToken,
+  agentOnly,
+  deleteByIdAgentController
+);
 module.exports = router;

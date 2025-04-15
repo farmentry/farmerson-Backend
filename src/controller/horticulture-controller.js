@@ -31,6 +31,12 @@ const addOrUpdatePlantationController = async (request, response) => {
         Joi.string().allow(""),
         Joi.boolean()
       ),
+      organic: Joi.alternatives().try(Joi.string().allow(""), Joi.boolean()),
+      recurringCrop: Joi.alternatives().try(
+        Joi.string().allow(""),
+        Joi.boolean()
+      ),
+      cropType: Joi.string().required(),
     });
     const { error } = horticultureSchema.validate(request.body);
     if (error) {
@@ -95,6 +101,12 @@ const addOrUpdatePlantationAgentController = async (request, response) => {
         Joi.string().allow(""),
         Joi.boolean()
       ),
+      organic: Joi.alternatives().try(Joi.string().allow(""), Joi.boolean()),
+      recurringCrop: Joi.alternatives().try(
+        Joi.string().allow(""),
+        Joi.boolean()
+      ),
+      cropType: Joi.string().required(),
     });
     const { error } = horticultureSchema.validate(request.body);
     if (error) {
