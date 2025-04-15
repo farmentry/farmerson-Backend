@@ -365,7 +365,7 @@ const getUserByIdModel = async (req, res) => {
       .from("users")
       .select(
         `
-        user_id, first_name, last_name, dob, email, isemailverified,active, is_farmer, farming_type,image_ref_id, created_at,
+        user_id, first_name, last_name, dob, email, isemailverified,verified_status,active, is_farmer, farming_type,image_ref_id, created_at,
         role: role_id (role_name),
         address: address_id (state, district, mandal, village, pincode),
         crops: crop_management!fk_user (
@@ -758,7 +758,7 @@ const getAllFarmersModel = async (req, res) => {
       .from("users")
       .select(
         `
-        user_id, first_name, last_name, dob, email,verified_status,isemailverified, active, is_farmer,farm_size, farming_type,image_ref_id, created_at,
+        user_id, first_name, last_name,verified_status, dob, email,isemailverified, active, is_farmer,farm_size, farming_type,image_ref_id, created_at,
         role: role_id (role_name)
       `
       )
