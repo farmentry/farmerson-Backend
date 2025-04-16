@@ -7,12 +7,12 @@ const {
   getByIdController,
   createOrUpdatePoultryAgentController,
   getAllDetailsAgentController,
+  getDeleteByIdController,
 } = require("../controller/poultry-controller");
 
 router.post("/create", requiredToken, createOrUpdatePoultryController);
 router.get("/get-all", requiredToken, getAllDetailsController);
 router.get("/get/:id", requiredToken, getByIdController);
-
 //agents
 router.post(
   "/create/:id",
@@ -27,4 +27,5 @@ router.get(
   getAllDetailsAgentController
 );
 router.get("/get/:id", requiredToken, agentOnly, getByIdController);
+router.delete("/delete/:id", requiredToken, agentOnly, getDeleteByIdController);
 module.exports = router;
