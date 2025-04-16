@@ -13,7 +13,6 @@ router.post("/create", requiredToken, createOrUpdateDailyController);
 router.get("/get-dairy-details", requiredToken, getAllDailyDetailsController);
 router.get("/get-dairy/:id", requiredToken, getDailyByIdController);
 
-//agent routes
 router.post(
   "/create/:id",
   requiredToken,

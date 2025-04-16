@@ -5,21 +5,39 @@ const {
   getByIdModel,
   createOrUpdatePoultryAgentModel,
   getAllDetailsAgentModel,
+  getDeleteByIdModel,
 } = require("../model/poultry-model");
+const poultrySchema = Joi.object({
+  id: Joi.string().required(),
+  poultry_type: Joi.string().valid("Broilers", "Layers", "Others").required(),
+  other_poultry_type: Joi.string().when("poultry_type", {
+    is: "Others",
+    then: Joi.string().min(1).required(),
+  }),
+  capacity: Joi.number().integer().min(0).required(),
+  current_stock: Joi.number().integer().min(0).required(),
+  number_of_sheds: Joi.number().integer().min(0).required(),
+  shed_type: Joi.string()
+    .valid("Open", "Semi Closed", "Air Conditioned")
+    .required(),
+  feeding_system: Joi.string().valid("Manual", "Homegrown", "Mixed").required(),
+  water_system: Joi.string().valid("Manual", "Nipples", "Automatic").required(),
+  waste_managed: Joi.string()
+    .valid("Sold to others", "Used As Fertilizer")
+    .required(),
+  batches: Joi.array()
+    .items(
+      Joi.object({
+        number_of_birds: Joi.number().integer().min(0).required(),
+        batch_start_date: Joi.string().allow("").required(),
+        is_producing_eggs: Joi.boolean().required(),
+        egg_production: Joi.number().min(0).precision(2).required(),
+      })
+    )
+    .required(),
+});
 const createOrUpdatePoultryController = async (request, response) => {
   try {
-    const poultrySchema = Joi.object({
-      id: Joi.string().required(),
-      farm_capacity: Joi.number().integer().min(0).required(),
-      current_stock: Joi.number().integer().min(0).required(),
-      poultry_type: Joi.string()
-        .valid("Broiler", "Layer", "Country Chicken")
-        .required(),
-      daily_egg_production: Joi.number().min(0).precision(2).optional(),
-      feed_type: Joi.string()
-        .valid("Commercial Feed", "Homegrown", "Mixed")
-        .required(),
-    });
     const { error } = poultrySchema.validate(request.body);
     if (error) {
       return response.status(400).json({
@@ -59,21 +77,8 @@ const getByIdController = async (request, response) => {
     });
   }
 };
-
 const createOrUpdatePoultryAgentController = async (request, response) => {
   try {
-    const poultrySchema = Joi.object({
-      id: Joi.string().required(),
-      farm_capacity: Joi.number().integer().min(0).required(),
-      current_stock: Joi.number().integer().min(0).required(),
-      poultry_type: Joi.string()
-        .valid("Broiler", "Layer", "Country Chicken")
-        .required(),
-      daily_egg_production: Joi.number().min(0).precision(2).optional(),
-      feed_type: Joi.string()
-        .valid("Commercial Feed", "Homegrown", "Mixed")
-        .required(),
-    });
     const { error } = poultrySchema.validate(request.body);
     if (error) {
       return response.status(400).json({
@@ -91,10 +96,20 @@ const createOrUpdatePoultryAgentController = async (request, response) => {
     });
   }
 };
-
 const getAllDetailsAgentController = async (request, response) => {
   try {
     const responseData = await getAllDetailsAgentModel(request, response);
+    return responseData;
+  } catch (error) {
+    return response.status(500).json({
+      statusbar: 500,
+      controllererror: error.message,
+    });
+  }
+};
+const getDeleteByIdController = async (request, response) => {
+  try {
+    const responseData = await getDeleteByIdModel(request, response);
     return responseData;
   } catch (error) {
     return response.status(500).json({
@@ -109,4 +124,5 @@ module.exports = {
   getByIdController,
   createOrUpdatePoultryAgentController,
   getAllDetailsAgentController,
+  getDeleteByIdController,
 };
